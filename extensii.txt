@@ -1,0 +1,56 @@
+== PUNCTAJ MANAGER - DEPENDENCIES ==
+
+Required Python Packages:
+- GitPython==3.1.40 (Git integration for team sync)
+- schedule==1.2.0 (Task scheduling for auto-reset)
+- pyinstaller==6.1.0 (Build to standalone EXE)
+
+Built-in (comes with Python):
+- tkinter (GUI framework)
+- json (data persistence)
+- os, shutil (file operations)
+- csv (archive reports)
+- datetime (timestamps)
+- threading (background tasks)
+
+== INSTALLATION ==
+
+Option 1 - Automated (Recommended):
+  installer.bat
+
+Option 2 - Manual:
+  pip install -r requirements.txt
+  python setup.py
+
+== BUILD ==
+
+To create PunctajManager.exe:
+  build.bat
+  
+or manually:
+  python setup.py
+
+== OUTPUT ==
+
+After build, EXE location:
+  dist/PunctajManager.exe
+
+== SYSTEM REQUIREMENTS ==
+
+- Windows 7+ (or any OS with Python)
+- Python 3.8 or higher
+- ~50MB disk space for virtual environment
+- ~20MB for standalone EXE
+- Internet connection (optional - for Git sync)
+
+== FILES CREATED ==
+
+- requirements.txt - Dependencies list
+- setup.py - PyInstaller configuration  
+- installer.bat - Automated installer script
+- build.bat - Quick rebuild script
+- README.md - Full documentation
+- venv/ - Virtual environment (after install)
+- dist/ - Build output folder
+- data/ - User data (created at runtime)
+- arhiva/ - Archives (created at runtime)
