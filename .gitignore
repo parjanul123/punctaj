@@ -11,6 +11,9 @@ build/
 dist/
 *.exe
 
+# Release packages
+release/
+
 # IDE
 .vscode/
 .idea/
