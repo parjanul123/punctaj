@@ -7,10 +7,25 @@ După build, în `dist/` vei găsi:
 
 ## 🗂️ Foldere Partajate
 
-Aplicația folosește **aceleași foldere de date** indiferent de unde rulează exe-ul:
+Aplicația folosește **aceleași foldere de date** indiferent cum o rulezi:
 
-- **data/** - Fișierele JSON cu datele instituțiilor
-- **arhiva/** - Arhivele CSV exportate
+```
+punctaj/                    ← Folderul proiectului
+├── punctaj.py              ← Script Python
+├── dist/
+│   └── PunctajManager.exe  ← Exe-ul
+├── data/                   ← DATE PARTAJATE (folosite de ambele!)
+│   └── Oras/
+│       └── Institutie.json
+└── arhiva/                 ← ARHIVE PARTAJATE (folosite de ambele!)
+    └── Oras/
+        └── Institutie.csv
+```
+
+**IMPORTANT**: 
+- ✅ `python punctaj.py` → folosește `punctaj/data/` și `punctaj/arhiva/`
+- ✅ `dist/PunctajManager.exe` → folosește **aceleași** `punctaj/data/` și `punctaj/arhiva/`
+- ✅ **Același set de date**, indiferent cum rulezi aplicația!
 
 ### ⚠️ IMPORTANT pentru Deployment
 
