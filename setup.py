@@ -19,8 +19,7 @@ def build_exe():
         '--onefile',  # Single EXE file
         '--windowed',  # Fără console window
         '--icon=icon.ico' if os.path.exists('icon.ico') else '',  # Icon (opțional)
-        '--add-data=data:data',  # Include data folder
-        '--add-data=arhiva:arhiva',  # Include archive folder
+        # NU includem data/ și arhiva/ - rămân externe pentru a fi partajate
         '--distpath=dist',
         '--workpath=build',  # Schimbat din --buildpath
         '--specpath=.',
