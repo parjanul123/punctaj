@@ -72,23 +72,16 @@ def ensure_city(city):
 
 # ================== GIT SYNC FUNCTIONS ==================
 def git_commit_and_push(file_path, message):
-    """Face commit și push la Git - exclude fișierele de date și arhive"""
+    """Face commit și push la Git pentru sincronizare multi-device"""
     if not GIT_ENABLED or not GIT_REPO:
         return
     
-    # Normalizează path-ul pentru comparație
-    normalized_path = os.path.normpath(file_path)
-    data_dir_norm = os.path.normpath(DATA_DIR)
-    archive_dir_norm = os.path.normpath(ARCHIVE_DIR)
-    
-    # Exclude fișierele din data/ și arhiva/
-    if normalized_path.startswith(data_dir_norm) or normalized_path.startswith(archive_dir_norm):
-        print(f"⊘ Git skip (data/arhiva): {file_path}")
-        return
-    
     try:
+        # Convertește path-ul la relativ față de BASE_DIR pentru Git
+        rel_path = os.path.relpath(file_path, BASE_DIR)
+        
         # Adaugă fișierul la staging
-        GIT_REPO.index.add([file_path])
+        GIT_REPO.index.add([rel_path])
         
         # Face commit
         GIT_REPO.index.commit(message, author=None)
@@ -97,10 +90,10 @@ def git_commit_and_push(file_path, message):
         try:
             origin = GIT_REPO.remote('origin')
             origin.push()
-            print(f"✓ Git push: {file_path}")
+            print(f"✓ Git push: {rel_path}")
         except:
             # Dacă nu e setup remote, doar commit local
-            print(f"✓ Git commit (local): {file_path}")
+            print(f"✓ Git commit (local): {rel_path}")
     
     except Exception as e:
         print(f"✗ Git error: {str(e)}")
