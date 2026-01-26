@@ -9,7 +9,6 @@ env/
 # Build files
 build/
 dist/
-*.spec
 *.exe
 
 # IDE
