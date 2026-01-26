@@ -23,8 +23,15 @@ except ImportError:
 # ================== CONFIG / PATHS ==================
 # Detectează dacă rulează ca EXE sau ca script Python
 if getattr(sys, 'frozen', False):
-    # Rulează ca EXE - folderele sunt în același director cu EXE-ul
-    BASE_DIR = os.path.dirname(sys.executable)
+    # Rulează ca EXE - folosește folderul PĂRINTE al exe-ului pentru date partajate
+    # Așa exe-ul din dist/ va folosi aceleași foldere ca și scriptul Python
+    exe_dir = os.path.dirname(sys.executable)
+    
+    # Dacă exe-ul e în dist/, urcă un nivel sus
+    if os.path.basename(exe_dir).lower() == 'dist':
+        BASE_DIR = os.path.dirname(exe_dir)
+    else:
+        BASE_DIR = exe_dir
 else:
     # Rulează ca script Python
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
