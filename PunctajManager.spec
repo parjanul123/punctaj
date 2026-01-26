@@ -5,7 +5,7 @@ a = Analysis(
     ['punctaj.py'],
     pathex=[],
     binaries=[],
-    datas=[],  # Nu mai împachetăm data/ și arhiva/ - rămân externe
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
