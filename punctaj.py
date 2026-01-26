@@ -8,9 +8,17 @@ from datetime import datetime
 import schedule
 import threading
 import time
-from git import Repo
-from git.exc import InvalidGitRepositoryError
 import sys
+
+# Git support - complet opțional
+try:
+    from git import Repo
+    from git.exc import InvalidGitRepositoryError
+    GIT_AVAILABLE = True
+except ImportError:
+    # Git nu e instalat sau GitPython lipsește - aplicația va funcționa fără Git
+    GIT_AVAILABLE = False
+    print("⚠️ Git nu este disponibil - funcționalitatea Git este dezactivată")
 
 # ================== CONFIG / PATHS ==================
 # Detectează dacă rulează ca EXE sau ca script Python
@@ -27,22 +35,26 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 # Git configuration
-GIT_ENABLED = True
+GIT_ENABLED = False
 GIT_REPO = None
 GIT_AUTHOR = "PunctajApp"
 GIT_EMAIL = "app@punctaj.local"
 
-# Inițializează Git repo
-try:
-    GIT_REPO = Repo(BASE_DIR)
-except InvalidGitRepositoryError:
+# Inițializează Git repo doar dacă GitPython e disponibil
+if GIT_AVAILABLE:
     try:
-        print("Inițializez Git repository...")
-        GIT_REPO = Repo.init(BASE_DIR)
+        GIT_REPO = Repo(BASE_DIR)
         GIT_ENABLED = True
-    except Exception as e:
-        print(f"Nu pot inițializa Git: {e}")
-        GIT_ENABLED = False
+    except (InvalidGitRepositoryError, NameError):
+        try:
+            print("Inițializez Git repository...")
+            GIT_REPO = Repo.init(BASE_DIR)
+            GIT_ENABLED = True
+        except Exception as e:
+            print(f"Nu pot inițializa Git: {e}")
+            GIT_ENABLED = False
+else:
+    print("ℹ️ Aplicația rulează fără suport Git")
 
 
 # Ora = tabel principal, institutia = sub-tabel, angajat = rand

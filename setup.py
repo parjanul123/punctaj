@@ -20,6 +20,10 @@ def build_exe():
         '--windowed',  # Fără console window
         '--icon=icon.ico' if os.path.exists('icon.ico') else '',  # Icon (opțional)
         # NU includem data/ și arhiva/ - rămân externe pentru a fi partajate
+        '--hidden-import=git',  # GitPython support
+        '--hidden-import=gitdb',  # Git database
+        '--hidden-import=smmap',  # Git memory mapping
+        '--collect-all=git',  # Include toate modulele Git
         '--distpath=dist',
         '--workpath=build',  # Schimbat din --buildpath
         '--specpath=.',
