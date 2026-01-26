@@ -60,8 +60,18 @@ def ensure_city(city):
 
 # ================== GIT SYNC FUNCTIONS ==================
 def git_commit_and_push(file_path, message):
-    """Face commit și push la Git"""
+    """Face commit și push la Git - exclude fișierele de date și arhive"""
     if not GIT_ENABLED or not GIT_REPO:
+        return
+    
+    # Normalizează path-ul pentru comparație
+    normalized_path = os.path.normpath(file_path)
+    data_dir_norm = os.path.normpath(DATA_DIR)
+    archive_dir_norm = os.path.normpath(ARCHIVE_DIR)
+    
+    # Exclude fișierele din data/ și arhiva/
+    if normalized_path.startswith(data_dir_norm) or normalized_path.startswith(archive_dir_norm):
+        print(f"⊘ Git skip (data/arhiva): {file_path}")
         return
     
     try:
