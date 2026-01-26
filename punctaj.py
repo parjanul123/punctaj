@@ -21,25 +21,23 @@ except ImportError:
     print("⚠️ Git nu este disponibil - funcționalitatea Git este dezactivată")
 
 # ================== CONFIG / PATHS ==================
-# Detectează dacă rulează ca EXE sau ca script Python
-if getattr(sys, 'frozen', False):
-    # Rulează ca EXE - folosește folderul PĂRINTE al exe-ului pentru date partajate
-    # Așa exe-ul din dist/ va folosi aceleași foldere ca și scriptul Python
-    exe_dir = os.path.dirname(sys.executable)
-    
-    # Dacă exe-ul e în dist/, urcă un nivel sus
-    if os.path.basename(exe_dir).lower() == 'dist':
-        BASE_DIR = os.path.dirname(exe_dir)
-    else:
-        BASE_DIR = exe_dir
-else:
-    # Rulează ca script Python
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# IMPORTANT: Datele sunt ÎNTOTDEAUNA în aceeași locație, 
+# indiferent de unde rulează aplicația!
 
+# Folosim user's Documents folder pentru date persistente și partajate
+USER_DOCUMENTS = os.path.join(os.path.expanduser("~"), "Documents")
+BASE_DIR = os.path.join(USER_DOCUMENTS, "PunctajManager")
+
+# Folderele de date - aceleași pentru TOATE instanțele aplicației
 DATA_DIR = os.path.join(BASE_DIR, "data")
 ARCHIVE_DIR = os.path.join(BASE_DIR, "arhiva")
+
+# Creează folderele dacă nu există
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
+
+# Log locația pentru debugging
+print(f"📁 Date salvate în: {DATA_DIR}")
 
 # Git configuration
 GIT_ENABLED = False
