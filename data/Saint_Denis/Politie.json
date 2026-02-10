@@ -1,21 +1,45 @@
 {
     "columns": [
         "DISCORD",
-        "NUMELE IC",
-        "SERIA DE BULETIN",
+        "NUME IC",
+        "SERIE DE BULETIN",
         "RANK",
         "ROLE",
-        "PUNCTAJ"
+        "PUNCTAJ",
+        "ULTIMA_MOD"
     ],
     "ranks": {
         "1": "Offiter",
         "2": "Caporal",
         "3": "Sergent",
         "4": "Plutonier",
-        "5": "Locotent",
-        "6": "Sherif Adj",
+        "5": "Locotenent Instructor",
+        "6": "Sherif Adjunct",
         "7": "Sherif"
     },
-    "rankuri_desc": "Rank 1: Offiter\nRank 2: Caporal\nRank 3: Sergent\nRank 4: Plutonier\nRank 5: Locotent\nRank 6: Sherif Adj\nRank 7: Sherif",
-    "rows": []
+    "rankuri_desc": "",
+    "last_punctaj_update": "2026-02-10 14:23:33",
+    "version": 2,
+    "last_synced": null,
+    "pending_sync": false,
+    "rows": [
+        {
+            "DISCORD": "Ganea",
+            "NUME IC": "Ganea Ionut",
+            "SERIE DE BULETIN": "Z29E43M59",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": "2",
+            "ULTIMA_MOD": "2026-02-10 14:23:33"
+        },
+        {
+            "DISCORD": "Iulian Ardila",
+            "NUME IC": "Iulian Ardila",
+            "SERIE DE BULETIN": "B71V58D47",
+            "RANK": "6",
+            "ROLE": "Sherif Adjunct",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-02 14:05:36"
+        }
+    ]
 }
