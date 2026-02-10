@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-10 14:23:33",
+    "last_punctaj_update": "2026-02-10 17:50:06",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -29,8 +29,8 @@
             "SERIE DE BULETIN": "Z29E43M59",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "2",
-            "ULTIMA_MOD": "2026-02-10 14:23:33"
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-10 14:31:01"
         },
         {
             "DISCORD": "Iulian Ardila",
@@ -38,8 +38,8 @@
             "SERIE DE BULETIN": "B71V58D47",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-02 14:05:36"
+            "PUNCTAJ": "7",
+            "ULTIMA_MOD": "2026-02-10 17:50:06"
         }
     ]
 }
