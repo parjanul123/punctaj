@@ -1,0 +1,180 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    🚀 QUICK START - PERMISSIONS FIX                         ║
+║                     Buttons should now work correctly!                       ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+THE PROBLEM YOU REPORTED:
+════════════════════════════════════════════════════════════════════════════
+
+❌ "Some users have true permissions in users_permissions.json
+    but buttons are still blocked in the app"
+
+
+THE ROOT CAUSE:
+════════════════════════════════════════════════════════════════════════════
+
+App was only reading permissions from Supabase cloud, not from the local
+encrypted users_permissions.json file. Even if permissions in JSON were true,
+they were completely ignored!
+
+
+THE FIX:
+════════════════════════════════════════════════════════════════════════════
+
+✅ REBUILT EXE with 5 functions modified to read from users_permissions.json
+
+Now permissions are checked in this order:
+1️⃣  users_permissions.json (FAST - local encrypted cache)
+2️⃣  Supabase (fallback - cloud source of truth)
+
+
+WHAT TO DO NOW:
+════════════════════════════════════════════════════════════════════════════
+
+Option 1: Test Immediately
+──────────────────────────
+
+1. Run: d:\punctaj\punctaj.exe
+
+2. Login with Discord
+
+3. Navigate to city/institution
+
+4. Check buttons - they should now work based on users_permissions.json!
+
+
+Option 2: Deploy to Another Device
+──────────────────────────────────
+
+1. Copy: d:\transfer\Punctaj_Manager_Complete_20260206_204221.zip
+
+2. Transfer to another device (USB, cloud, etc.)
+
+3. Extract anywhere (e.g., C:\Punctaj)
+
+4. Run: punctaj.exe
+
+5. Login and test
+
+
+PERMISSION STRUCTURE IN users_permissions.json:
+════════════════════════════════════════════════════════════════════════════
+
+For Paulstanciu (Limited user):
+
+{
+  "discord_id": "1449374935196893197",
+  "username": "paulstanciu6_48913",
+  "is_admin": false,
+  "permissions": {
+    "institutions": {
+      "BlackWater": {
+        "Politie": {
+          "can_view": true,        ← View button ENABLED
+          "can_edit": false,       ← Edit button DISABLED
+          "can_delete": false,     ← Delete button DISABLED
+          "can_add_score": true    ← Add score button ENABLED
+        }
+      }
+    }
+  }
+}
+
+
+For Parjanu (Admin):
+
+{
+  "discord_id": "703316932232872016",
+  "username": "parjanu",
+  "is_admin": true,
+  "permissions": {
+    "institutions": {
+      "BlackWater": {
+        "Politie": {
+          "can_view": true,        ← ALL buttons ENABLED
+          "can_edit": true,
+          "can_delete": true,
+          "can_add_employee": true
+        }
+      }
+    },
+    "global": {
+      "can_add_city": true,        ← Can add cities
+      "can_edit_city": true,       ← Can edit cities
+      "can_delete_city": true      ← Can delete cities
+    }
+  }
+}
+
+
+TESTING CHECKLIST:
+════════════════════════════════════════════════════════════════════════════
+
+Run EXE: d:\punctaj\punctaj.exe
+
+□ Login with paulstanciu6_48913
+□ Go to BlackWater → Politie
+□ View button: Should be ENABLED ✅
+□ Edit button: Should be DISABLED ❌
+□ Delete button: Should be DISABLED ❌
+□ Add score button: Should be ENABLED ✅
+
+OR
+
+□ Login with parjanu
+□ Go to any city/institution
+□ ALL buttons: Should be ENABLED ✅
+
+
+WHAT CHANGED IN THE CODE:
+════════════════════════════════════════════════════════════════════════════
+
+discord_auth.py:
+  ✅ has_granular_permission() → Reads users_permissions.json FIRST
+  ✅ can_view_city() → NOW ACTUALLY CHECKS PERMISSIONS (was broken!)
+  ✅ can_edit_city_granular() → NOW ACTUALLY CHECKS PERMISSIONS (was broken!)
+
+admin_permissions.py:
+  ✅ get_user_institution_permissions() → Reads users_permissions.json FIRST
+  ✅ get_user_permissions() → Reads users_permissions.json FIRST (2 versions)
+
+
+IF SOMETHING DOESN'T WORK:
+════════════════════════════════════════════════════════════════════════════
+
+1. Verify users_permissions.json is populated:
+   py VERIFY_USERS_JSON.py
+
+2. Reinitialize from Supabase:
+   py INIT_USERS_JSON.py
+
+3. Check Discord ID matches:
+   - Developer Mode in Discord: Right-click user → Copy User ID
+   - Check if it matches Discord ID in users_permissions.json
+
+4. Check the file content:
+   data/users_permissions.json should contain:
+   - "users" key with discord_id entries
+   - "permissions" key with "institutions" and "global" permissions
+
+
+IMPORTANT FILES:
+════════════════════════════════════════════════════════════════════════════
+
+✅ d:\punctaj\punctaj.exe
+   → New fixed version, ready to run
+
+✅ d:\punctaj\data\users_permissions.json
+   → Contains all users and their permissions
+
+✅ d:\punctaj\data\.encryption_key
+   → Encryption key for JSON (unique per device)
+
+✅ d:\transfer\Punctaj_Manager_Complete_20260206_204221.zip
+   → Complete transfer package for other devices
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+Ready to test? Run: d:\punctaj\punctaj.exe 🚀

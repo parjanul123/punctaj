@@ -1,0 +1,60 @@
+PUNCTAJ MANAGER v2.5
+Setup Information
+
+VERSION: 2.5 with Real-Time Sync
+DATE: 2026-02-03
+STATUS: Production Ready
+
+REQUIREMENTS:
+  - Python 3.7 or higher
+  - Windows 7 or later
+  - 512 MB RAM minimum
+  - 200 MB disk space
+  - Internet connection
+
+WHAT'S INCLUDED:
+  ✓ Real-Time Cloud Sync (every 30 seconds)
+  ✓ Real-Time Permission Sync (every 5 seconds)
+  ✓ Auto-User Registration on Discord login
+  ✓ Professional Setup Wizard
+  ✓ Admin Panel with granular permissions
+  ✓ Complete documentation
+
+INSTALLATION STEPS:
+
+1. EXTRACT
+   Double-click INSTALL.bat or run it from command prompt
+
+2. CONFIGURE (if needed)
+   Edit discord_config.ini with Discord OAuth credentials
+   Edit supabase_config.ini with Supabase API credentials
+
+3. LAUNCH
+   Application launches automatically after setup
+   Or click "Punctaj Manager" in Windows Start Menu
+
+4. FIRST LOGIN
+   Click "Login cu Discord"
+   Your account is auto-created in Supabase
+   Wait for admin to assign permissions
+
+FEATURES:
+
+Real-Time Cloud Sync
+  Database syncs every 30 seconds
+  Changes from other users visible instantly
+  No restart needed
+
+Real-Time Permission Sync
+  Permissions synced every 5 seconds
+  Admin changes visible instantly
+  No restart needed
+
+Auto-Registration
+  First Discord login creates your account
+  No manual user creation needed
+  Initial role: VIEWER (limited access)
+
+SUPPORT:
+  See: 00_START_HERE_IMPLEMENTATION.md
+

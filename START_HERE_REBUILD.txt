@@ -1,0 +1,329 @@
+🚀 REBUILD PUNCTAJ INSTALLER - STEP BY STEP
+
+═══════════════════════════════════════════════════════════════════
+
+TI-AM PREGATIT TOTUL! Iata ce trebuie sa faci:
+
+═══════════════════════════════════════════════════════════════════
+
+PARTE 1: PREGATIRE (2 MINUTE)
+
+Step 1.1: Deschide Command Prompt
+──────────────────────────────────
+1. Apasa: Win + R
+2. Scrie: cmd
+3. Apasa: Enter
+
+SAU - Deschide PowerShell (mai frumos):
+1. Click dreapta pe Start
+2. Selecteaza: Windows PowerShell (Admin)
+
+Step 1.2: Naviga in folderul proiectului
+─────────────────────────────────────────
+Type:
+  cd d:\punctaj
+
+Verifica:
+  dir
+  (trebuie sa vazi: punctaj.py, build_installer_v2.bat, etc)
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 2: BUILD-UL (5-10 MINUTE)
+
+OPTIUNEA A - Batch File (Simplu)
+─────────────────────────────────
+
+Type in Command Prompt:
+  build_installer_v2.bat
+
+Apoi astepta... Vei vedea:
+  ✓ [STEP 1] Cleaning previous builds...
+  ✓ [STEP 2] Building main executable...
+  ✓ [STEP 3] Creating directories...
+  ✓ [STEP 4] Copying support files...
+  ✓ [STEP 5] Copying config files...
+  ✓ [STEP 6] Copying installer scripts...
+  ✓ [STEP 7] Copying data...
+  ✓ [STEP 8] Creating documentation...
+  ✓ [STEP 9] Creating ZIP package...
+  ✓ [STEP 10] Creating NSIS installer...
+  ✓ [STEP 11] Build complete!
+
+Finalul:
+  Installer packages ready in: installer_outputs
+
+ACEASTA ESTE CEA MAI USOARA CALE - RECOMANDARE!
+
+
+OPTIUNEA B - PowerShell (Frumos & Detaliat)
+────────────────────────────────────────────
+
+Type in PowerShell:
+  .\build_installer_v2.ps1
+
+Vei vedea output cu culori si mai detaliat.
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 3: ASTEPTARE (5-10 MINUTE)
+
+Procesul:
+  1. Curatare build-uri vechi ................... 30 sec
+  2. Compilare Punctaj.exe ..................... 3-5 min
+  3. Copiere fisiere suport .................... 1 min
+  4. Copiere configurare ....................... 30 sec
+  5. Copiere installer-e ....................... 30 sec
+  6. Copiere date ............................... 30 sec
+  7. Creare documente .......................... 10 sec
+  8. Creare package ZIP ........................ 30 sec
+  9. Creare installer NSIS .................... 30 sec
+  10. Generare summary .......................... 10 sec
+                                        ─────────────
+                                   Total: 5-10 minute
+
+NU INCHIDE FEREASTRA!
+NU ANULA PROCESUL!
+
+Doar asteapta sa vad mesajul:
+  "BUILD COMPLETE!"
+  "BUILD STATUS: SUCCESS"
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 4: VERIFICARE (30 SECUNDE)
+
+Dupa ce build-ul se termina:
+
+Step 4.1: Verifica folder-ul installer_outputs
+──────────────────────────────────────────────
+Type:
+  explorer installer_outputs
+
+Trebuie sa vezi 3 fisiere:
+  1. Punctaj_Portable.zip (~150-200 MB)
+  2. Punctaj_Installer.exe (~200-250 MB)
+  3. BUILD_SUMMARY.txt
+
+
+Step 4.2: Verifica BUILD_SUMMARY.txt
+────────────────────────────────────
+Open file and look for:
+  "BUILD STATUS: SUCCESS ✓"
+
+Daca vezi aceasta linie = BUILD OK!
+
+
+Step 4.3: Verifica dimensiuni fisiere
+─────────────────────────────────────
+Punctaj_Portable.zip ar trebui sa fie: > 100 MB
+Punctaj_Installer.exe ar trebui sa fie: > 150 MB
+
+Daca sunt mult mai mici, ceva a mers gresit.
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 5: COPY TO USB / CLOUD (2-10 MINUTE)
+
+Acum hai sa transferi instalerele pe al doilea dispozitiv!
+
+OPTIUNE 1: USB DRIVE (Recomandat)
+──────────────────────────────────
+
+1. Insert USB drive in your computer
+2. Open: installer_outputs folder
+3. Copy: Punctaj_Installer.exe to USB
+4. Eject USB safely
+5. Go to second device
+6. Paste file on desktop
+7. Double-click Punctaj_Installer.exe
+8. Follow Setup Wizard (see below)
+
+
+OPTIUNE 2: CLOUD STORAGE (Google Drive / OneDrive)
+───────────────────────────────────────────────────
+
+1. Open Google Drive or OneDrive
+2. Upload: Punctaj_Installer.exe from installer_outputs
+3. Wait for upload (depends on file size)
+4. Share link with user
+5. User downloads on second device
+6. Double-click to run installer
+
+
+OPTIUNE 3: PORTABLE (NO INSTALLATION)
+──────────────────────────────────────
+
+Daca preferai portable (extract anywhere):
+1. Copy: Punctaj_Portable.zip from installer_outputs
+2. Transfer to USB / Cloud / Email
+3. On second device: Extract ZIP
+4. Run: Punctaj.exe inside extracted folder
+5. Setup Wizard appears
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 6: SETUP ON SECOND DEVICE (5-10 MINUTE)
+
+Cand ruleaza instalerele pe al doilea dispozitiv:
+
+Automat va aparea Setup Wizard cu 3 optiuni:
+
+[A] Load from File
+   ├─ Daca ai supabase_config.ini de pe alt dispozitiv
+   ├─ Click "Browse..." si selecteaza fisierul
+   └─ Config se incarca automat
+
+[B] Enter Manually
+   ├─ URL: https://yzlkgifumrwqlfgimcai.supabase.co
+   ├─ API Key: (gasesti in Supabase project settings)
+   └─ Copy-paste valorile
+
+[C] Test Connection
+   ├─ Click butonul "Test Connection"
+   ├─ Trebuie sa arata: ✓ Connection successful
+   └─ Daca da, continua la Step urmatorul
+
+[D] Save Configuration
+   ├─ Click: "Save & Continue"
+   ├─ Fisierul supabase_config.ini se salveaza automat
+   └─ Setup Wizard se inchide
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 7: VERIFICA INSTALARE (30 SECUNDE)
+
+Pe al doilea dispozitiv, dupa ce Setup Wizard se inchide:
+
+Deschide Command Prompt in folderul de instalare:
+  1. Win + R
+  2. Type: cmd
+  3. cd "C:\Program Files\Punctaj"
+  (sau wherever you installed it)
+
+Ruleaza test:
+  python QUICK_TEST_DATABASE.py
+
+Trebuie sa vzi:
+  ✓ Config file found
+  ✓ Configuration valid
+  ✓ Database connection OK
+
+  ✅ ALL TESTS PASSED - Punctaj is ready!
+
+Daca vzi aceste 3 checkmark-uri verzi = READY!
+
+═══════════════════════════════════════════════════════════════════
+
+PARTEA 8: LANSEAZA APLICATIA (30 SECUNDE)
+
+Acum poti folosi Punctaj!
+
+Pe dispozitivul 2:
+  1. Double-click: Punctaj.exe
+  2. Aplicatia se lanseaza
+  3. Se conecteaza la Supabase cloud
+  4. Everything is synced!
+
+═══════════════════════════════════════════════════════════════════
+
+COMPLETE TIMELINE
+
+Moment      Actiune                            Timp
+─────────────────────────────────────────────────────
+0:00        Start Command Prompt               1 min
+0:01        Navigate to d:\punctaj             1 min
+0:02        Run build script                   START
+0:02-0:12   Build executable (5-10 min)        5-10 min
+0:12-0:15   Build installer packages (3 min)   3 min
+0:15        Build complete                     0 min
+0:15-0:17   Copy to USB / Cloud               2 min
+0:17-0:25   Transfer to second device         5-10 min (depends)
+0:25-0:30   Setup Wizard on device 2          5 min
+0:30-0:31   Quick test                        1 min
+0:31        READY TO USE!                     ✓
+
+═══════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING
+
+Problem: "command not found" - build_installer_v2.bat
+Solution: Make sure you're in d:\punctaj directory
+          Type: dir
+          You should see the .bat file listed
+
+Problem: "pyinstaller not found"
+Solution: Install it:
+          pip install pyinstaller
+
+Problem: Build is taking too long (> 15 minutes)
+Solution: This is normal for first build
+          Subsequent builds are faster
+          Just wait...
+
+Problem: Setup Wizard doesn't appear on device 2
+Solution: Run manually:
+          python SETUP_SUPABASE_WIZARD.py
+
+═══════════════════════════════════════════════════════════════════
+
+WHAT YOU'LL HAVE AFTER BUILD
+
+installer_outputs folder will contain:
+
+1. Punctaj_Installer.exe (~200-250 MB)
+   → Standard Windows installer
+   → Recommended for distribution
+   → User just double-clicks and follows wizard
+
+2. Punctaj_Portable.zip (~150-200 MB)
+   → Can be extracted anywhere
+   → No installation required
+   → Just extract and run
+
+3. BUILD_SUMMARY.txt
+   → Information about build
+   → What files are included
+   → How to use the installer
+
+═══════════════════════════════════════════════════════════════════
+
+FINAL CHECKLIST
+
+Before starting build:
+  [ ] Command Prompt open
+  [ ] In directory: d:\punctaj
+  [ ] Can see: punctaj.py, build_installer_v2.bat
+
+Starting build:
+  [ ] Type: build_installer_v2.bat
+  [ ] Press Enter
+  [ ] Wait 5-10 minutes
+  [ ] See: "BUILD COMPLETE!"
+
+After build:
+  [ ] Check installer_outputs exists
+  [ ] Check Punctaj_Installer.exe exists (> 150 MB)
+  [ ] Check Punctaj_Portable.zip exists (> 100 MB)
+  [ ] Check BUILD_SUMMARY.txt shows SUCCESS
+
+On second device:
+  [ ] Copy installer from USB / Cloud
+  [ ] Run Punctaj_Installer.exe
+  [ ] Complete Setup Wizard
+  [ ] Run QUICK_TEST_DATABASE.py
+  [ ] See all green checkmarks
+  [ ] Launch Punctaj.exe
+
+═══════════════════════════════════════════════════════════════════
+
+READY?
+
+STEP 1: Open Command Prompt
+STEP 2: cd d:\punctaj
+STEP 3: build_installer_v2.bat
+STEP 4: WAIT 5-10 MINUTES
+STEP 5: Copy from installer_outputs to second device
+STEP 6: Done!
+
+═══════════════════════════════════════════════════════════════════

@@ -1,0 +1,253 @@
+🔨 REBUILD INSTALLER - QUICK START
+
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: VERIFY ALL FILES ARE PRESENT
+
+Essential files needed in d:\punctaj:
+  ✓ punctaj.py (main application)
+  ✓ punctaj.spec (build specification)
+  ✓ config_resolver.py (NEW - config auto-discovery)
+  ✓ SETUP_SUPABASE_WIZARD.py (NEW - setup wizard)
+  ✓ DATABASE_CONNECTION_DIAGNOSTIC.py (NEW - diagnostics)
+  ✓ QUICK_TEST_DATABASE.py (NEW - quick test)
+  ✓ installer_gui.py (installer interface)
+  ✓ installer_app.py (installer script)
+  ✓ supabase_config.ini (config template)
+  ✓ discord_config.ini (discord template)
+
+═══════════════════════════════════════════════════════════════════
+
+STEP 2: RUN BUILD SCRIPT (Choose ONE)
+
+Option A: BATCH FILE (Windows Command Prompt)
+─────────────────────────────────────────────
+
+Open Command Prompt and run:
+  cd d:\punctaj
+  build_installer_v2.bat
+
+This will:
+  1. Clean previous builds
+  2. Compile Punctaj.exe
+  3. Copy all files to bundle
+  4. Create ZIP installer
+  5. Create NSIS installer (if NSIS installed)
+  6. Generate build summary
+
+Time: ~5-10 minutes (depends on your system)
+
+
+Option B: POWERSHELL (Recommended)
+──────────────────────────────────
+
+Open PowerShell and run:
+  cd d:\punctaj
+  .\build_installer_v2.ps1
+
+Same as above but with better output and colors.
+
+
+Option C: POWERSHELL - ADVANCED
+
+  ZIP only (no NSIS):
+    .\build_installer_v2.ps1 -NoNSIS
+
+  Clean only (test):
+    .\build_installer_v2.ps1 -CleanOnly
+
+═══════════════════════════════════════════════════════════════════
+
+STEP 3: WAIT FOR BUILD TO COMPLETE
+
+Build progress:
+  [STEP 1] Cleaning builds ..................... 10 sec
+  [STEP 2] Compiling Punctaj.exe .............. 3-5 min
+  [STEP 3] Creating directories ............... 5 sec
+  [STEP 4] Copying support files .............. 10 sec
+  [STEP 5] Copying config templates ........... 5 sec
+  [STEP 6] Copying installer scripts .......... 5 sec
+  [STEP 7] Copying data ........................ 10 sec
+  [STEP 8] Creating documentation ............ 5 sec
+  [STEP 9] Creating ZIP package .............. 30 sec
+  [STEP 10] Creating NSIS installer ........... 30 sec
+  [STEP 11] Generating summary ............... 5 sec
+                                     ─────────────
+                                Total: ~5-10 minutes
+
+═══════════════════════════════════════════════════════════════════
+
+STEP 4: CHECK RESULTS
+
+After build completes, check folder: installer_outputs
+
+You should see:
+  ✓ Punctaj_Portable.zip (ZIP installer - portable)
+  ✓ Punctaj_Installer.exe (Windows installer - recommended)
+  ✓ BUILD_SUMMARY.txt (build information)
+
+File sizes:
+  - ZIP: ~150-200 MB (compressed)
+  - EXE: ~200-250 MB (standalone installer)
+
+═══════════════════════════════════════════════════════════════════
+
+STEP 5: COPY TO USB / SHARE
+
+Copy from installer_outputs:
+
+  For portable use:
+    → Punctaj_Portable.zip (extract anywhere)
+
+  For clean installation:
+    → Punctaj_Installer.exe (run the installer)
+
+═══════════════════════════════════════════════════════════════════
+
+ON SECOND DEVICE
+
+User Instructions:
+
+1. Copy Punctaj_Installer.exe to the device
+   OR extract Punctaj_Portable.zip
+
+2. Run the installer
+   (OR if portable, just extract and run Punctaj.exe)
+
+3. Setup Wizard appears automatically
+   - Load from file OR Enter manually
+   - Test connection
+   - Save configuration
+
+4. Verify installation:
+   python QUICK_TEST_DATABASE.py
+
+5. If all green ✓, then:
+   Punctaj.exe ready to use!
+
+═══════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING
+
+Problem: Build fails with "punctaj.spec not found"
+Solution: Make sure you're in d:\punctaj directory
+
+Problem: PyInstaller error
+Solution: Ensure PyInstaller is installed
+  pip install pyinstaller
+
+Problem: ZIP creation fails
+Solution: Windows PowerShell might be blocking it
+  Run: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+  Then run build script again
+
+Problem: NSIS installer not created
+Solution: NSIS is optional, ZIP installer will work fine
+  To enable: Install NSIS from https://nsis.sourceforge.io/
+
+═══════════════════════════════════════════════════════════════════
+
+WHAT'S DIFFERENT IN v2.0
+
+Old Build (v1.0):
+  ✗ No automatic configuration
+  ✗ Missing Setup Wizard
+  ✗ Connection issues on new devices
+  ✗ No diagnostic tools
+
+New Build (v2.0):
+  ✓ Setup Wizard auto-launches
+  ✓ Config auto-discovery
+  ✓ Easy transfer between devices
+  ✓ Complete diagnostic tools
+  ✓ Better error messages
+
+═══════════════════════════════════════════════════════════════════
+
+WHAT'S IN THE INSTALLER
+
+Application Files:
+  - Punctaj.exe (main app)
+  - All Python modules (embedded in exe)
+  - Config templates
+
+Support Tools:
+  - config_resolver.py (find config files)
+  - SETUP_SUPABASE_WIZARD.py (configure)
+  - DATABASE_CONNECTION_DIAGNOSTIC.py (diagnose)
+  - QUICK_TEST_DATABASE.py (verify)
+
+Documentation:
+  - SETUP_INSTRUCTIONS.txt
+  - INSTALLER_README.txt
+  - INSTALLER_DATABASE_TROUBLESHOOTING_GUIDE.md
+  - IMPLEMENTATION_STEPS.txt
+
+═══════════════════════════════════════════════════════════════════
+
+QUICK BUILD COMMAND
+
+For fastest rebuild:
+
+Batch:
+  @echo off
+  cd /d d:\punctaj
+  build_installer_v2.bat
+
+PowerShell:
+  cd d:\punctaj
+  .\build_installer_v2.ps1 -NoNSIS
+
+═══════════════════════════════════════════════════════════════════
+
+BUILD OUTPUT EXPLAINED
+
+BUILD_SUMMARY.txt shows:
+  - What was built
+  - What files are included
+  - How to use the installer
+  - Installation instructions
+
+Check this file after build to verify everything is OK.
+
+═══════════════════════════════════════════════════════════════════
+
+DISTRIBUTION CHECKLIST
+
+Before sharing installers:
+
+  [ ] Build completed successfully
+  [ ] BUILD_SUMMARY.txt shows "SUCCESS"
+  [ ] Punctaj_Installer.exe or Punctaj_Portable.zip exists
+  [ ] File sizes look reasonable (~150-250 MB)
+  [ ] Include INSTALLER_README.txt with package
+  [ ] Copy to USB / upload to file sharing
+  [ ] Test on another computer (recommended)
+
+═══════════════════════════════════════════════════════════════════
+
+READY TO DISTRIBUTE!
+
+After build completes, your installers are ready.
+
+Copy to another device:
+  1. USB drive
+  2. Cloud storage (Google Drive, Dropbox, etc)
+  3. Email (if < 25 MB)
+  4. Network share
+  5. Web server
+
+Then users can:
+  1. Download/copy installer
+  2. Run Punctaj_Installer.exe
+  3. Follow Setup Wizard
+  4. Use Punctaj immediately
+
+═══════════════════════════════════════════════════════════════════
+
+Questions? Check:
+  - INSTALLER_README.txt
+  - INSTALLER_FIX_SUMMARY.md
+  - IMPLEMENTATION_STEPS.txt
+
+═══════════════════════════════════════════════════════════════════

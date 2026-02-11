@@ -1,0 +1,10 @@
+How to uninstall Punctaj Manager:
+
+1. Open Windows Start Menu
+2. Find "Punctaj Manager"
+3. Right-click and select "Uninstall"
+
+OR manually:
+1. Delete folder: %APPDATA%\PunctajManager
+2. Delete Start Menu shortcut: %APPDATA%\Microsoft\Windows\Start Menu\Programs\Punctaj Manager
+

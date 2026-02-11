@@ -1,0 +1,102 @@
+# 🎯 AUTO-REGISTRATION - QUICK REFERENCE
+
+## ❓ Ce se intampla?
+
+Cand te conectezi cu Discord:
+
+```
+Tu apasa "Login cu Discord"
+        ↓
+Discord aproba
+        ↓
+Aplicatie primeste: username, id, email
+        ↓
+Aplicatie CAUTA in Supabase cu discord_id
+        ↓
+    GASIT?        NU GASIT?
+      ↓               ↓
+  UPDATE          INSERT NEW
+  login_time      user automat
+      ↓               ↓
+  ✅ GATA        ✅ CREAT
+```
+
+## ✅ Rezultat
+
+### Daca USER EXISTA:
+- Locat normal
+- `last_login` se actualizeaza
+- Acces cu permisiunile pe care le-a avut anterior
+
+### Daca USER NU EXISTA:
+- Se CREEAZA AUTOMAT
+- Discord username, id, email se salveaza
+- **FARA PERMISIUNI** (role = VIEWER)
+- Admin trebuie sa-i dea acces
+
+## 🔍 In Console
+
+### User existent:
+```
+✅ User already exists in Supabase: JohnDoe
+✅ User last_login updated in Supabase
+```
+
+### User nou:
+```
+➕ User NOT found in Supabase - creating new account...
+✅ NEW USER CREATED IN SUPABASE
+   Initial Permissions: NONE (role: VIEWER)
+   Status: ✅ Ready - Admin can assign permissions
+```
+
+## ⚙️ In Supabase
+
+Userilor noi le se creeaza cu:
+```
+discord_username: "JohnDoe"
+discord_id: "123456789"
+discord_email: "john@discord.com"
+created_at: "2026-02-03T10:30:00"
+last_login: "2026-02-03T10:30:00"
+active: TRUE
+is_superuser: FALSE
+is_admin: FALSE
+can_view: FALSE        👈 FARA ACCES!
+can_edit: FALSE
+can_delete: FALSE
+granular_permissions: {}
+```
+
+## 🎯 Pentru Admin
+
+1. User se conecteaza cu Discord
+2. Se creeaza AUTOMAT in Supabase
+3. **FARA PERMISIUNI** initial
+4. Admin trebuie sa:
+   - Deschide Admin Panel
+   - Selecteaza user
+   - Aloca permisiuni
+   - Apasa "Save"
+5. User vede permisiuni in max 5 sec (sincronizare!)
+
+## 🚨 Probleme Posibile
+
+| Problema | Solutie |
+|----------|---------|
+| User nu se creeaza | Check: Supabase online? Internet OK? |
+| User creat dar nu apare | Refresh Supabase dashboard |
+| User creat dar fara email | Email nu e obligatoriu, OK |
+| User creat 2 ori (duplicate) | Imposibil - discord_id unique! |
+
+## ✨ Features
+
+✅ **Automatic** - Fara actiuni manuale
+✅ **Instant** - Creat instant la login
+✅ **Safe** - No duplicate users (unique constraint)
+✅ **Smart** - Retry logic daca timeout
+✅ **Logged** - Console messages pt debugging
+
+---
+
+**TL;DR:** Login cu Discord → User creat automat in Supabase (daca e nou) ✅

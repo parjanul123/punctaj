@@ -1,0 +1,276 @@
+REBUILD INSTALLER v2.0 - ACTIONABLE STEPS
+
+═══════════════════════════════════════════════════════════════════
+
+EXACT STEPS TO FOLLOW:
+
+STEP 1: Open Command Prompt
+────────────────────────────
+1. Press: Windows key + R
+2. Type: cmd
+3. Press: Enter
+
+(Command Prompt window opens)
+
+
+STEP 2: Navigate to project folder
+───────────────────────────────────
+Type exactly:
+  cd d:\punctaj
+
+Press: Enter
+
+You should see:
+  d:\punctaj>
+
+
+STEP 3: Verify you're in correct location
+──────────────────────────────────────────
+Type:
+  dir
+
+You should see files listed including:
+  - punctaj.py
+  - build_installer_v2.bat
+  - config_resolver.py
+  - SETUP_SUPABASE_WIZARD.py
+  - etc...
+
+If these files are NOT listed, you're in wrong folder!
+Go back to STEP 2 and verify path is correct.
+
+
+STEP 4: Start the build
+───────────────────────
+Type exactly:
+  build_installer_v2.bat
+
+Press: Enter
+
+You should see output starting with:
+  ==========================================
+  Punctaj Application Build v2.0
+  with Config Resolver & Setup Wizard
+  ==========================================
+
+
+STEP 5: Wait for build to complete
+───────────────────────────────────
+The script will show progress:
+
+[STEP 1] Cleaning previous builds...
+[OK] Clean complete
+
+[STEP 2] Building main executable...
+   This may take a few minutes...
+[OK] Punctaj.exe created
+
+... (more steps) ...
+
+[STEP 11] Generating build summary...
+[OK] Finished
+
+You will see:
+  ==========================================
+  BUILD COMPLETE!
+  ==========================================
+  
+  Installer packages ready in: installer_outputs
+
+DO NOT close the window or interrupt the process!
+Just let it run. Takes 5-10 minutes depending on your computer.
+
+
+STEP 6: Open installer_outputs folder
+──────────────────────────────────────
+After build completes, type:
+  explorer installer_outputs
+
+A Windows Explorer window opens showing the results.
+
+You should see 3 files:
+  ✓ Punctaj_Portable.zip (150-200 MB)
+  ✓ Punctaj_Installer.exe (200-250 MB)
+  ✓ BUILD_SUMMARY.txt
+
+
+STEP 7: Verify build success
+─────────────────────────────
+Open: BUILD_SUMMARY.txt
+
+Look for line:
+  BUILD STATUS: SUCCESS
+
+If you see this = BUILD IS GOOD!
+
+If you see anything else = BUILD FAILED
+(Look at error messages to troubleshoot)
+
+
+STEP 8: Choose which installer to use
+──────────────────────────────────────
+You have 2 options:
+
+Option A - Standard Installer (RECOMMENDED):
+  Use: Punctaj_Installer.exe
+  How: Copy to USB or cloud
+       User double-clicks to install
+       Setup Wizard appears automatically
+
+Option B - Portable (No installation):
+  Use: Punctaj_Portable.zip
+  How: Copy to USB or cloud
+       User extracts ZIP anywhere
+       User runs Punctaj.exe from extracted folder
+       Setup Wizard appears automatically
+
+
+STEP 9: Copy to USB / Cloud for second device
+───────────────────────────────────────────────
+
+For USB Drive:
+  1. Insert USB into this computer
+  2. Copy Punctaj_Installer.exe from installer_outputs
+  3. Paste into USB drive
+  4. Eject USB safely
+  5. Insert USB into second device
+  6. Copy Punctaj_Installer.exe to Desktop on device 2
+  7. Double-click to run installer
+
+For Cloud Storage (Google Drive / OneDrive):
+  1. Go to Google Drive or OneDrive
+  2. Upload Punctaj_Installer.exe from installer_outputs
+  3. Share the link
+  4. On device 2, download the file
+  5. Double-click to run installer
+
+
+STEP 10: On second device - Run Setup Wizard
+──────────────────────────────────────────────
+
+After running installer on device 2:
+
+Setup Wizard will appear with options:
+  [Option A] Load from file
+             If you have supabase_config.ini from another device
+             Click "Browse", select the config file
+             Config loads automatically
+
+  [Option B] Enter manually
+             Enter Supabase URL
+             Enter Supabase API Key
+             (Get these from Supabase project settings)
+
+  [Test Connection]
+             Click to verify settings work
+             Should show: ✓ Connection successful
+
+  [Save & Continue]
+             Saves configuration
+             Closes Setup Wizard
+             Application is ready!
+
+
+STEP 11: Verify on second device
+─────────────────────────────────
+
+Open Command Prompt on device 2:
+  cd "C:\Program Files\Punctaj"  (or wherever you installed it)
+
+Type:
+  python QUICK_TEST_DATABASE.py
+
+You should see:
+  ✓ Step 1: Config file found
+  ✓ Step 2: Configuration valid
+  ✓ Step 3: Database connection OK
+  
+  ✅ ALL TESTS PASSED
+
+If you see green checkmarks = ALL IS GOOD!
+
+
+STEP 12: Launch application
+────────────────────────────
+
+On device 2:
+  Double-click: Punctaj.exe
+
+Application launches and syncs with cloud Supabase!
+
+═══════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING - IF SOMETHING GOES WRONG:
+
+Problem: "build_installer_v2.bat not found"
+  → You're not in d:\punctaj folder
+  → Type: dir (check you see the .bat file)
+  → If not listed, you're in wrong folder
+  → Go back to STEP 2
+
+Problem: Build takes very long (> 15 minutes)
+  → This is normal for first build
+  → Just wait, don't interrupt
+  → Close other applications to free resources
+
+Problem: "PyInstaller not found"
+  → Open new Command Prompt
+  → Type: pip install pyinstaller
+  → Wait for installation
+  → Try build again
+
+Problem: "Permission denied"
+  → Right-click Command Prompt
+  → Select "Run as Administrator"
+  → Try again
+
+Problem: Build fails with errors
+  → Keep Command Prompt open
+  → Read error message carefully
+  → Check: 00_BUILD_INSTALLER_FINAL.txt
+  → Or: INSTALLER_DATABASE_TROUBLESHOOTING_GUIDE.md
+
+Problem: Setup Wizard doesn't appear on device 2
+  → Open Command Prompt on device 2
+  → cd to installation folder
+  → Type: python SETUP_SUPABASE_WIZARD.py
+  → Run manually
+
+Problem: Quick test shows red X marks
+  → Run: python DATABASE_CONNECTION_DIAGNOSTIC.py
+  → Read detailed report
+  → Follow recommendations
+
+═══════════════════════════════════════════════════════════════════
+
+TIME ESTIMATES:
+
+Building installer on this computer: 5-10 minutes
+Copying to USB/Cloud: 2-5 minutes
+Transferring to device 2: 5-10 minutes (depends on method)
+Setup on device 2: 5 minutes
+Verification: 1 minute
+
+Total: 18-31 minutes to fully ready
+
+═══════════════════════════════════════════════════════════════════
+
+FINAL CHECKLIST BEFORE STARTING:
+
+[ ] Command Prompt is open
+[ ] You're in d:\punctaj (verified with dir)
+[ ] You have internet connection
+[ ] You have > 500 MB free disk space
+[ ] Second device is ready (for later)
+[ ] USB drive ready (for later) OR cloud storage account
+
+═══════════════════════════════════════════════════════════════════
+
+YOU'RE READY!
+
+Just run:
+  build_installer_v2.bat
+
+And everything will be created automatically!
+
+═══════════════════════════════════════════════════════════════════

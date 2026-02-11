@@ -1,0 +1,287 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  📦 EXECUTABLE & FILES REQUIREMENTS                         ║
+║           What files are needed for punctaj.exe to work correctly            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+CURRENT STATUS (2026-02-06):
+✅ punctaj.exe built successfully (19.62 MB)
+📂 Location: d:\punctaj\dist\
+📋 Config files: Already included in dist/
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 WHAT'S IN THE EXE:
+─────────────────────────────────────────────────────────────────────────────
+
+The punctaj.exe file contains:
+  ✓ All Python code compiled
+  ✓ All dependencies (requests, supabase, etc.)
+  ✓ All business logic modules (banks, sync, auth, etc.)
+  ✓ tkinter GUI framework
+  ✓ Threading and async libraries
+
+The EXE is STANDALONE but needs supporting files to function.
+
+
+📋 REQUIRED FILES FOR punctaj.exe TO WORK:
+─────────────────────────────────────────────────────────────────────────────
+
+┌─ CRITICAL FILES (Without these, app won't start):
+│
+├─ supabase_config.ini
+│  Purpose: Database connection settings
+│  Location: Same folder as punctaj.exe
+│  Must contain:
+│    [supabase]
+│    url = https://your-project.supabase.co
+│    key = your_anon_key
+│    db_url = postgresql://user:pass@host/db
+│
+├─ discord_config.ini
+│  Purpose: Discord OAuth authentication
+│  Location: Same folder as punctaj.exe
+│  Must contain:
+│    [discord]
+│    client_id = your_client_id
+│    client_secret = your_secret
+│    redirect_uri = http://localhost:port/callback
+│
+└─ data/ folder structure
+   Purpose: Store local employee records & cache
+   Location: Same folder as punctaj.exe
+   
+   Required structure:
+   data/
+   ├─ BlackWater/
+   │  └─ Politie.json (employee records)
+   ├─ Saint_Denis/
+   │  └─ Politie.json (employee records)
+   └─ (other city folders as needed)
+
+
+┌─ OPTIONAL BUT HELPFUL:
+│
+├─ arhiva/ folder
+│  Purpose: Archive/backup folder
+│  Auto-created if missing
+│
+├─ logs/ folder
+│  Purpose: Application logs
+│  Auto-created if missing
+│
+└─ .config/ folder
+   Purpose: Hidden config storage
+   Auto-created if missing
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🏗️  CORRECT FOLDER STRUCTURE:
+─────────────────────────────────────────────────────────────────────────────
+
+When you extract/install punctaj.exe anywhere, structure should be:
+
+C:\Punctaj\                          (or D:\, E:\, anywhere)
+├─ punctaj.exe                       ✅ CRITICAL
+├─ supabase_config.ini               ✅ CRITICAL
+├─ discord_config.ini                ✅ CRITICAL
+├─ data/                             ✅ CRITICAL
+│  ├─ BlackWater/
+│  │  └─ Politie.json
+│  ├─ Saint_Denis/
+│  │  └─ Politie.json
+│  └─ (other cities)
+├─ arhiva/                           📁 Auto-created
+├─ logs/                             📁 Auto-created
+└─ .config/                          📁 Auto-created
+
+
+OR on another device:
+
+D:\Apps\Punctaj\                     (different location)
+├─ punctaj.exe                       ✅ SAME FILE
+├─ supabase_config.ini               ✅ SAME CONFIG
+├─ discord_config.ini                ✅ SAME CONFIG
+├─ data/                             ✅ Will be separate on each device
+│  ├─ BlackWater/
+│  │  └─ Politie.json
+│  ├─ Saint_Denis/
+│  │  └─ Politie.json
+│  └─ (synced from Supabase)
+├─ arhiva/
+├─ logs/
+└─ .config/
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 HOW TO DEPLOY:
+─────────────────────────────────────────────────────────────────────────────
+
+OPTION 1: Using the Transfer ZIP (Recommended)
+─────────────────────────────────────────────────
+File: Punctaj_Manager_Complete_20260206_195344.zip (38.72 MB)
+Location: d:\transfer\
+
+Steps:
+1. Copy ZIP file to USB drive or cloud
+2. Transfer to another device
+3. Extract to desired location (C:\Punctaj, D:\Punctaj, etc.)
+4. Structure auto-correct from ZIP:
+   ✅ punctaj.exe included
+   ✅ Config files included
+   ✅ data/ folder included with structure
+   ✅ All other files included
+5. Run punctaj.exe
+
+
+OPTION 2: Manual deployment
+──────────────────────────────
+Files to copy manually:
+
+From d:\punctaj\dist:
+  • punctaj.exe
+  • supabase_config.ini
+  • discord_config.ini
+
+From d:\punctaj\data:
+  • Entire data/ folder with:
+    - BlackWater/Politie.json
+    - Saint_Denis/Politie.json
+
+Destination:
+  Paste all into: C:\MyFolder\Punctaj\ (any location)
+
+Result:
+  C:\MyFolder\Punctaj\
+  ├─ punctaj.exe
+  ├─ supabase_config.ini
+  ├─ discord_config.ini
+  └─ data/
+     ├─ BlackWater/Politie.json
+     └─ Saint_Denis/Politie.json
+
+Then: Double-click punctaj.exe
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚙️  WHAT HAPPENS WHEN YOU RUN EXE:
+─────────────────────────────────────────────────────────────────────────────
+
+1. Launch: Double-click punctaj.exe
+   
+2. Initialization:
+   ✓ Reads supabase_config.ini → connects to database
+   ✓ Reads discord_config.ini → prepares authentication
+   ✓ Checks data/ folder structure → ensures BlackWater, Saint_Denis exist
+   
+3. Data Loading:
+   ✓ Loads local Politie.json files from data/
+   ✓ On startup: Syncs from Supabase cloud → downloads new data to data/
+   
+4. Discord Login:
+   ✓ Opens browser for login (each session requires fresh login)
+   ✓ No token stored (thread-safe, multi-device compatible)
+   
+5. Database Operations:
+   ✓ All reads/writes go through Supabase
+   ✓ Local data/ folder is cache of cloud data
+   ✓ Automatically syncs bidirectionally
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ CURRENT STATUS:
+─────────────────────────────────────────────────────────────────────────────
+
+Ready Files:
+  ✅ punctaj.exe (19.62 MB) in d:\punctaj\dist\
+  ✅ supabase_config.ini in d:\punctaj\dist\
+  ✅ discord_config.ini in d:\punctaj\dist\
+  ✅ data/ folder with Politie.json files in d:\punctaj\data\
+
+Ready for Deployment:
+  ✅ Transfer ZIP (38.72 MB) in d:\transfer\
+  ✅ Multi-device compatible
+  ✅ Cloud sync on startup
+  ✅ Thread-safe authentication
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔍 VERIFICATION:
+─────────────────────────────────────────────────────────────────────────────
+
+If punctaj.exe doesn't work, check:
+
+❌ App won't start:
+   → Is supabase_config.ini in same folder as .exe?
+   → Is discord_config.ini in same folder as .exe?
+   → Are config values correct (url, key, client_id)?
+
+❌ "Database not found" error:
+   → Check if data/ folder exists
+   → Check if data/BlackWater/ and data/Saint_Denis/ exist
+   → Missing: Can auto-create on startup
+
+❌ "Discord login failed":
+   → Verify discord_config.ini has correct values
+   → Each session requires fresh login (normal behavior)
+
+❌ "Can't save data":
+   → Check Supabase connection (supabase_config.ini)
+   → Check if data/ folder is writable
+   → Check Supabase database permissions
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 SUMMARY FOR MULTIPLE DEVICES:
+─────────────────────────────────────────────────────────────────────────────
+
+Device 1 (Current):
+  └─ C:\Punctaj\ (or wherever you have it)
+     ├─ punctaj.exe
+     ├─ supabase_config.ini (SHARED - same file on all devices)
+     ├─ discord_config.ini (SHARED - same file on all devices)
+     └─ data/ (UNIQUE to each device, synced with cloud)
+
+Device 2 (Second Computer):
+  └─ C:\Punctaj\ (or D:\, E:\, etc.)
+     ├─ punctaj.exe (SAME - copy from Device 1)
+     ├─ supabase_config.ini (SAME - copy from Device 1)
+     ├─ discord_config.ini (SAME - copy from Device 1)
+     └─ data/ (DIFFERENT - automatically syncs from Supabase)
+
+Device 3+ (Any other):
+  └─ Any location
+     ├─ punctaj.exe (SAME)
+     ├─ supabase_config.ini (SAME)
+     ├─ discord_config.ini (SAME)
+     └─ data/ (SYNCS from cloud)
+
+All devices share the same Supabase database → changes on one device → syncs to all.
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+💾 FILES READY TO USE:
+─────────────────────────────────────────────────────────────────────────────
+
+Location: d:\punctaj\dist\
+├─ punctaj.exe (19.62 MB) ✅
+├─ supabase_config.ini ✅
+└─ discord_config.ini ✅
+
+Plus: d:\punctaj\data\
+└─ BlackWater/ & Saint_Denis/ with Politie.json ✅
+
+Plus: d:\transfer\
+└─ Punctaj_Manager_Complete_20260206_195344.zip (38.72 MB) ✅ READY TO TRANSFER
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Generated: 2026-02-06
+Status: READY FOR DEPLOYMENT ✅

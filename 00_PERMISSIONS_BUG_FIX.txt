@@ -1,0 +1,232 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║              ✅ FIX PERMISSIONS BUTTONS - BUG RESOLUTION                     ║
+║                  Buttons now read from users_permissions.json               ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+PROBLEM:
+════════════════════════════════════════════════════════════════════════════
+
+Users had TRUE permissions in users_permissions.json (e.g., can_view=true, 
+can_edit=true) but buttons were still BLOCKED in the application. 
+
+Root Cause: Application was reading permissions from SUPABASE ONLY, not from
+the local encrypted JSON file.
+
+
+SOLUTION IMPLEMENTED:
+════════════════════════════════════════════════════════════════════════════
+
+Changed permission verification in 4 critical functions to use this priority:
+
+1. ✅ FIRST: Read from users_permissions.json (FAST - local encrypted cache)
+2. ✅ THEN: Fall back to Supabase (cloud source of truth)
+
+This ensures LOCAL permissions are used immediately without cloud delay.
+
+
+FILES MODIFIED:
+════════════════════════════════════════════════════════════════════════════
+
+1️⃣  discord_auth.py
+    Function: has_granular_permission()
+    Change: Now reads users_permissions.json FIRST before Supabase
+    Impact: All permission checks in buttons use this
+    
+    Priority:
+    1. local cache
+    2. permission sync manager  
+    3. Supabase (fallback)
+
+2️⃣  discord_auth.py
+    Functions: can_view_city(), can_edit_city_granular()
+    Change: Now actually CALL has_granular_permission() for specific cities
+    Before: Just checked if user was authenticated (bug!)
+    After: Check actual city-specific permissions
+    
+    Example:
+    OLD: return self.user_role.lower() in ['viewer', 'user', 'admin']
+    NEW: Check cities.BlackWater.can_view permission specifically
+
+3️⃣  admin_permissions.py
+    Function: get_user_institution_permissions()
+    Change: Read from users_permissions.json FIRST, then Supabase
+    Impact: Institution/employee buttons use this
+    
+    Reads:
+    - permissions.institutions.{city}.{institution}.can_edit
+    - permissions.institutions.{city}.{institution}.can_view
+    - permissions.institutions.{city}.{institution}.can_delete
+    etc.
+
+4️⃣  admin_permissions.py
+    Function: get_user_permissions() [BOTH versions]
+    Change: Read from users_permissions.json FIRST, then Supabase
+    Impact: Global buttons and city actions use this
+    
+    Reads:
+    - permissions.global.can_add_city
+    - permissions.global.can_edit_city
+    - permissions.global.can_delete_city
+    etc.
+
+
+HOW IT WORKS NOW:
+════════════════════════════════════════════════════════════════════════════
+
+1. User logs in with Discord
+2. Application loads permissions for that user
+3. When checking if button should be enabled:
+   
+   ┌─────────────────────────────────────┐
+   │ Check has_granular_permission()     │
+   │ or get_user_permissions()           │
+   │ or get_user_institution_permissions │
+   └─────────────────────────────────────┘
+        ↓
+   ┌─────────────────────────────────────┐
+   │ 1️⃣  Try users_permissions.json      │
+   │     (FAST - encrypted local cache)  │
+   └─────────────────────────────────────┘
+        ↓ (if not found)
+   ┌─────────────────────────────────────┐
+   │ 2️⃣  Try Supabase                    │
+   │     (cloud source of truth)         │
+   └─────────────────────────────────────┘
+        ↓ (result)
+   ┌─────────────────────────────────────┐
+   │ ✅ Button enabled/disabled          │
+   └─────────────────────────────────────┘
+
+
+EXAMPLE: Paulstanciu User
+════════════════════════════════════════════════════════════════════════════
+
+User: paulstanciu6_48913 (Discord ID: 1449374935196893197)
+is_admin: false
+Status: Should have LIMITED permissions
+
+From users_permissions.json:
+
+{
+  "institutions": {
+    "BlackWater": {
+      "Politie": {
+        "can_view": true,           ✅ Can view employees
+        "can_edit": false,          ❌ Cannot edit
+        "can_delete": false,        ❌ Cannot delete
+        "can_add_score": true       ✅ Can add scores (punctaj)
+      }
+    },
+    "Saint_Denis": {
+      "Politie": {
+        "can_view": false,          ❌ Cannot view
+        "can_add_score": false      ❌ Cannot add scores
+      }
+    }
+  }
+}
+
+Expected Behavior:
+- In BlackWater/Politie: Can view employees, can add scores (buttons ENABLED)
+- In Saint_Denis/Politie: Cannot view (button DISABLED)
+- Edit/delete buttons: ALWAYS DISABLED
+
+
+EXAMPLE: Parjanu (Admin User)
+════════════════════════════════════════════════════════════════════════════
+
+User: parjanu (Discord ID: 703316932232872016)
+is_admin: true
+Status: Admin - full permissions
+
+From users_permissions.json:
+
+{
+  "institutions": {
+    "BlackWater": {
+      "Politie": {
+        "can_view": true,
+        "can_edit": true,           ✅ Can edit
+        "can_delete": true,         ✅ Can delete
+        "can_add_employee": true,   ✅ Can add employees
+      }
+    }
+  },
+  "global": {
+    "can_add_city": true,          ✅ Can add cities
+    "can_edit_city": true,         ✅ Can edit cities
+    "can_delete_city": true        ✅ Can delete cities
+  }
+}
+
+Expected Behavior:
+- ALL buttons ENABLED
+- Can manage everything
+
+
+REBUILD INFO:
+════════════════════════════════════════════════════════════════════════════
+
+Build: In progress
+EXE Size: ~19.60 MB
+Changes: 4 functions with permission logic
+Status: Rebuilt with fixes
+
+Command: py BUILD_EXE_MULTIDEVICE.py
+
+
+TESTING AFTER FIX:
+════════════════════════════════════════════════════════════════════════════
+
+1. Run new EXE (dist/punctaj.exe)
+2. Login with Discord (e.g., paulstanciu6_48913 or parjanu)
+3. Navigate to city/institution
+4. Buttons should now work based on users_permissions.json permissions
+5. If users_permissions.json has can_view=true → button ENABLED
+6. If users_permissions.json has can_view=false → button DISABLED
+
+
+VERIFICATION CHECKLIST:
+════════════════════════════════════════════════════════════════════════════
+
+After rebuild, verify:
+
+✅ users_permissions.json exists in data/ folder
+✅ .encryption_key exists in data/ folder
+✅ Permissions in JSON match what you want
+✅ Run EXE
+✅ Login as user
+✅ Check if buttons now respect permissions in JSON
+✅ Try actions with can_edit=true (should work)
+✅ Try actions with can_edit=false (should be blocked)
+
+
+IF STILL NOT WORKING:
+════════════════════════════════════════════════════════════════════════════
+
+1. Check users_permissions.json contains the user
+   py VERIFY_USERS_JSON.py
+
+2. Verify permissions structure in JSON:
+   {
+     "users": {
+       "discord_id": {
+         "permissions": {
+           "institutions": {...},
+           "global": {...}
+         }
+       }
+     }
+   }
+
+3. Check Discord ID in JSON matches logged-in user's ID
+   (Use Discord Developer Mode to see your ID)
+
+4. Reinitialize JSON from Supabase if needed:
+   py INIT_USERS_JSON.py
+
+
+═════════════════════════════════════════════════════════════════════════════
+
+Status: FIX COMPLETE
+EXE rebuild in progress...

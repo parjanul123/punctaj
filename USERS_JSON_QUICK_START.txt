@@ -1,0 +1,266 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  🚀 QUICK START - Users & Permissions JSON                  ║
+║                 Initiate and use the encrypted JSON system                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+QUICK SETUP (3 STEPS):
+════════════════════════════════════════════════════════════════════════════
+
+1️⃣  Generate Encryption Key (First Time Only)
+   
+   Command: py SETUP_ENCRYPTION_KEY.py
+   
+   Creates: data/.encryption_key
+   What: Fernet cipher key (AES-128)
+   Security: 600 permissions (owner read/write only)
+
+
+2️⃣  Initialize users_permissions.json
+   
+   Command: py INIT_USERS_JSON.py
+   
+   Creates: data/users_permissions.json
+   What: Downloads users from Supabase, saves locally encrypted
+   Requires: supabase_config.ini with valid credentials
+
+
+3️⃣  Done! Start using in punctaj.exe
+   
+   The app automatically:
+   • Loads users_permissions.json
+   • Syncs with Supabase
+   • Allows adding new users via dialog
+   • Encrypts everything locally
+
+
+FILES CREATED:
+════════════════════════════════════════════════════════════════════════════
+
+After setup, you'll have:
+
+d:\punctaj\data\
+├─ users_permissions.json (Encrypted JSON with users & permissions)
+├─ .encryption_key (Encryption key - 600 perms)
+├─ BlackWater/
+│  └─ Politie.json
+└─ Saint_Denis/
+   └─ Politie.json
+
+
+WHAT'S IN users_permissions.json:
+════════════════════════════════════════════════════════════════════════════
+
+{
+  "users": {
+    "discord_id": {
+      "discord_id": number,
+      "username": "string",
+      "is_admin": boolean,
+      "permissions": { ... },
+      "created_at": "ISO datetime",
+      "updated_at": "ISO datetime"
+    }
+  },
+  "last_sync": "ISO datetime",
+  "sync_status": "cloud_downloaded|cloud_uploaded",
+  "user_count": number,
+  "version": 1
+}
+
+Example with 1 user:
+
+{
+  "users": {
+    "123456789": {
+      "discord_id": 123456789,
+      "username": "john_doe#1234",
+      "is_admin": false,
+      "permissions": {
+        "cities": {},
+        "institutions": {},
+        "employees": {},
+        "cloud": {"upload": false, "download": false},
+        "admin": {"view_logs": false, "manage_users": false, ...}
+      },
+      "created_at": "2026-02-06T20:30:00...",
+      "updated_at": "2026-02-06T20:30:00..."
+    }
+  },
+  "last_sync": "2026-02-06T20:30:00...",
+  "sync_status": "cloud_downloaded",
+  "user_count": 1,
+  "version": 1
+}
+
+
+USAGE IN EXE:
+════════════════════════════════════════════════════════════════════════════
+
+The system automatically:
+
+1. On startup:
+   ✅ Initializes USERS_PERMS_JSON_MANAGER
+   ✅ Loads users_permissions.json
+   ✅ Decrypts data with encryption key
+   ✅ Ready to use
+
+2. Admin wants to add user:
+   ✅ Click menu: "Add User"
+   ✅ Dialog appears
+   ✅ Enter: Discord ID, Username, Admin checkbox
+   ✅ Click: "Add User"
+   ✅ System:
+      • Adds to local JSON (encrypted)
+      • Immediately syncs to Supabase
+      • Shows success message
+
+3. Other devices:
+   ✅ On startup, sync downloads user from Supabase
+   ✅ User appears in system
+   ✅ Same permissions across all devices
+
+
+ENCRYPTION:
+════════════════════════════════════════════════════════════════════════════
+
+How it works:
+
+1. Encryption key (.encryption_key):
+   • Generated once per device
+   • Stored in data/ folder (600 permissions)
+   • Unique to each installation
+   • Used to encrypt/decrypt local data
+
+2. Local data (users_permissions.json):
+   • Encrypted with Fernet cipher (AES-128)
+   • Even if file is copied, data is unreadable without key
+   • Encrypted data starts with __encrypted__ prefix
+
+3. Cloud data (Supabase):
+   • Stored in discord_users table
+   • granular_permissions column contains JSON
+   • Also encrypted at rest by Supabase
+   • HTTPS for transmission
+
+4. Multi-device:
+   • Device 1 has encryption key A
+   • Device 2 has encryption key B
+   • Each decrypts with own key
+   • Cloud (Supabase) is source of truth
+
+
+TROUBLESHOOTING:
+════════════════════════════════════════════════════════════════════════════
+
+Problem: "users_permissions.json not found"
+─────────────────────────────────────────
+Solution: Run py INIT_USERS_JSON.py
+
+
+Problem: "Encryption key not found"
+────────────────────────────────────
+Solution: Run py SETUP_ENCRYPTION_KEY.py
+
+
+Problem: "Cannot decrypt data"
+──────────────────────────────
+Solution:
+  1. Delete data/.encryption_key
+  2. Run py SETUP_ENCRYPTION_KEY.py (generates new key)
+  3. Run py INIT_USERS_JSON.py (re-download and re-encrypt)
+
+
+Problem: "Supabase connection error"
+──────────────────────────────────
+Solution:
+  1. Check supabase_config.ini exists
+  2. Check URL and key are correct
+  3. Check internet connection
+  4. Run: py DIAGNOSE_SUPABASE.py
+
+
+Problem: "Add user dialog not showing"
+─────────────────────────────────────
+Solution:
+  1. Check add_user_dialog.py exists
+  2. Check USERS_PERMS_JSON_MANAGER initialized (check console)
+  3. Check tkinter available (usually included)
+
+
+MANUAL OPERATIONS:
+════════════════════════════════════════════════════════════════════════════
+
+If you need to manually work with the system:
+
+# Python script operations:
+
+from users_permissions_json_manager import UsersPermissionsJsonManager
+
+manager = UsersPermissionsJsonManager(
+    supabase_url="https://your-project.supabase.co",
+    supabase_key="your_key",
+    data_dir="data"
+)
+
+# Download from cloud
+manager.download_from_cloud()
+
+# Add new user and sync
+manager.add_user_and_sync(123456789, "username#1234", is_admin=False)
+
+# Upload changes
+manager.upload_to_cloud()
+
+# Full sync
+manager.sync_bidirectional()
+
+# Get stats
+stats = manager.get_stats()
+print(f"Total users: {stats['total_users']}")
+
+# List users
+users = manager.list_users()
+
+# Get specific user permissions
+perms = manager.get_user_permissions(123456789)
+
+
+VERIFICATION:
+════════════════════════════════════════════════════════════════════════════
+
+After setup, run this to verify everything works:
+
+py TEST_USERS_PERMISSIONS_JSON.py
+
+This checks:
+✅ JSON file exists and valid
+✅ Encryption working
+✅ Connection to Supabase
+✅ User list loads
+✅ Permissions format correct
+✅ Sync operations work
+
+
+NEXT:
+════════════════════════════════════════════════════════════════════════════
+
+1. Run setup scripts:
+   py SETUP_ENCRYPTION_KEY.py
+   py INIT_USERS_JSON.py
+
+2. Verify:
+   py TEST_USERS_PERMISSIONS_JSON.py
+
+3. Run EXE:
+   punctaj.exe
+
+4. Try adding user from menu: "Add User"
+
+5. Check file created:
+   data/users_permissions.json ✅
+   data/.encryption_key ✅
+
+
+DONE! ✅
+
+Your users & permissions JSON system is ready!

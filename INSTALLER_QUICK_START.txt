@@ -1,0 +1,247 @@
+╔════════════════════════════════════════════════════════════════╗
+║      PUNCTAJ MANAGER - INSTALLER CREATOR (QUICK START)         ║
+╚════════════════════════════════════════════════════════════════╝
+
+🎯 GOAL: Create professional Windows installer for Punctaj Manager
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ STEP 1: PREPARE YOUR SYSTEM
+
+Required:
+  ☐ Python 3.8 or later (download from python.org)
+  ☐ NSIS 3.x (download from nsis.sourceforge.io OR run: choco install nsis)
+
+Optional (for better installer):
+  ☐ icon.ico file (256x256 or 64x64 pixels) in d:\punctaj\
+
+Check Python:
+  Command Prompt:
+    python --version
+  PowerShell:
+    python --version
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ STEP 2: BUILD THE INSTALLER
+
+Choose ONE method:
+
+═══ METHOD A: PowerShell (RECOMMENDED) ═══
+  1. Open PowerShell
+  2. Navigate to: cd d:\punctaj
+  3. Run: .\BUILD_NEW_INSTALLER.ps1
+  4. Wait for completion (~5-10 minutes)
+
+═══ METHOD B: Command Prompt ═══
+  1. Open Command Prompt
+  2. Navigate to: cd d:\punctaj
+  3. Run: BUILD_NEW_INSTALLER.bat
+  4. Wait for completion (~5-10 minutes)
+
+═══ METHOD C: Direct Python ═══
+  1. Open Command Prompt or PowerShell
+  2. Navigate to: cd d:\punctaj
+  3. Run: python BUILD_INSTALLER_COMPLETE.py
+  4. Wait for completion (~5-10 minutes)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ STEP 3: WHAT HAPPENS DURING BUILD
+
+The script will:
+
+[1] Install PyInstaller (if not already installed)
+    └─ Downloads and configures Python packaging tool
+
+[2] Build Python executable (5-10 minutes)
+    └─ Converts punctaj.py to Punctaj.exe
+    └─ Size: ~40-60 MB
+    └─ Stored in: d:\punctaj\dist\Punctaj\
+
+[3] Create installer structure
+    └─ Organizes files for installation
+    └─ Copies configuration files
+    └─ Prepares package
+
+[4] Generate NSIS installer script
+    └─ Creates Windows installer configuration
+    └─ Sets up Start Menu shortcuts
+    └─ Configures uninstaller
+
+[5] Build NSIS installer
+    └─ Creates: Punctaj_Manager_Setup.exe
+    └─ Size: ~100-150 MB
+    └─ Ready for distribution
+
+[6] Create documentation
+    └─ Installation guide (INSTALLATION_README.txt)
+    └─ Build manifest (manifest.json)
+    └─ Application requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 OUTPUT FILES
+
+After successful build, you'll find:
+
+  d:\punctaj\
+  ├── installer_output/
+  │   ├── Punctaj/
+  │   │   ├── Punctaj.exe              ← Main application
+  │   │   ├── discord_config.ini
+  │   │   ├── supabase_config.ini
+  │   │   └── [dependencies]
+  │   ├── Punctaj_Installer.nsi        ← NSIS script
+  │   └── manifest.json                ← Build info
+  │
+  ├── Punctaj_Manager_Setup.exe        ← FINAL INSTALLER ✓
+  ├── INSTALLATION_README.txt          ← User guide
+  └── dist/                            ← Build artifacts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ STEP 4: TEST THE INSTALLER
+
+After build completes:
+
+  1. Navigate to: d:\punctaj\installer_output\
+  2. Find: Punctaj_Manager_Setup.exe
+  3. Double-click it
+  4. Follow the installation wizard
+  5. Test the application works
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🐛 TROUBLESHOOTING
+
+Problem: "Python not found"
+Solution:
+  • Install Python from python.org
+  • Check "Add Python to PATH"
+  • Restart Command Prompt/PowerShell
+
+Problem: "NSIS not found"
+Solution:
+  • Install from: https://nsis.sourceforge.io/Download
+  • Or run: choco install nsis -y
+  • Restart Command Prompt/PowerShell
+
+Problem: Build takes too long or hangs
+Solution:
+  • Close other applications
+  • Check disk space (need 500MB free)
+  • Run administrator Command Prompt/PowerShell
+
+Problem: "PyInstaller not found"
+Solution:
+  • The build script installs it automatically
+  • If fails, run: python -m pip install pyinstaller --upgrade
+
+Problem: File is too large
+Solution:
+  • Normal! File is 100-150 MB (includes Python runtime)
+  • This is expected for standalone executable
+
+Problem: Antivirus flags the installer
+Solution:
+  • Normal! PyInstaller executables trigger some antivirus
+  • Add to whitelist or use signed certificate (optional)
+  • Test on virustotal.com for verification
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 INSTALLATION REQUIREMENTS
+
+Users need:
+  ✓ Windows 7 SP1 or later (64-bit)
+  ✓ 100 MB free disk space
+  ✓ Internet connection (for cloud sync)
+  ✓ Administrator privileges (for installation)
+
+Optional:
+  ✓ Discord account (for OAuth integration)
+  ✓ Supabase account (for cloud sync)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 DISTRIBUTING THE INSTALLER
+
+To share with users:
+
+  1. Get the file:
+     Punctaj_Manager_Setup.exe (from d:\punctaj\)
+
+  2. Create a ZIP package (optional):
+     • Include: Punctaj_Manager_Setup.exe
+     • Include: INSTALLATION_README.txt
+     • Include: LICENSE.txt (if applicable)
+
+  3. Upload to:
+     • GitHub Releases
+     • Google Drive
+     • Dropbox
+     • Your web server
+
+  4. Generate checksum (for security):
+     PowerShell: (Get-FileHash "Punctaj_Manager_Setup.exe").Hash
+     CMD: certutil -hashfile "Punctaj_Manager_Setup.exe" SHA256
+
+  5. Share with users:
+     • Provide download link
+     • Include checksum for verification
+     • Include installation instructions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 REBUILDING OR UPDATING
+
+If you need to rebuild:
+
+  1. Update your code in punctaj.py
+  2. Rerun the build script
+  3. Test the new installer
+  4. Version bump (optional)
+
+Cleanup old builds:
+  PowerShell: Remove-Item dist, build, installer_output -Recurse
+  CMD: rmdir /s /q dist build installer_output
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 NEXT STEPS
+
+Ready to build? Here's what to do:
+
+1. Open PowerShell or Command Prompt
+2. Navigate: cd d:\punctaj
+3. Run installer:
+   
+   PowerShell: .\BUILD_NEW_INSTALLER.ps1
+   CMD:        BUILD_NEW_INSTALLER.bat
+
+4. Wait for completion (~5-10 minutes)
+5. Test the installer
+6. Share with users!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 SUPPORT
+
+For issues:
+  • Check the troubleshooting section above
+  • Review build logs in console
+  • Check PyInstaller documentation
+  • Verify all system requirements
+
+Files created by this process:
+  ✓ BUILD_NEW_INSTALLER.bat     (Batch script)
+  ✓ BUILD_NEW_INSTALLER.ps1     (PowerShell script)
+  ✓ BUILD_INSTALLER_COMPLETE.py (Main builder)
+  ✓ INSTALLER_GUIDE.md          (Full documentation)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Version: 1.0
+Status: ✅ READY TO USE
+Created: 2026-02-02

@@ -1,0 +1,308 @@
+🔧 REBUILD INSTALLER - FINAL INSTRUCTIONS
+
+═══════════════════════════════════════════════════════════════════
+
+SITUATIE ACTUALA:
+- Instalerele v1.0 (vechi) - Fara config resolver si setup wizard
+- Instalerele v2.0 (noi) - Cu toate fisierele si suportul complet
+
+STATUS: READY TO BUILD v2.0
+
+═══════════════════════════════════════════════════════════════════
+
+FISIERELE NOI INCLUSE:
+
+1. config_resolver.py
+   → Auto-gaseste supabase_config.ini din 10+ locatii
+
+2. SETUP_SUPABASE_WIZARD.py
+   → Interfata GUI pentru configurare Supabase
+   → Auto-lansat dupa instalare
+
+3. DATABASE_CONNECTION_DIAGNOSTIC.py
+   → Tool diagnostic complet
+   → Detecteaza si rezolva probleme
+
+4. QUICK_TEST_DATABASE.py
+   → Test rapid dupa instalare
+   → Verifica conexiunea la baza de date
+
+5. Fisiere de documentatie
+   → INSTALLER_README.txt
+   → INSTALLER_DATABASE_TROUBLESHOOTING_GUIDE.md
+   → Etc.
+
+═══════════════════════════════════════════════════════════════════
+
+STEP-BY-STEP: BUILD INSTALLER v2.0
+
+STEP 1: Pregatire
+─────────────────
+
+Verifica ca toate fisierele sunt in d:\punctaj:
+
+Fisiere critice:
+  ✓ punctaj.py
+  ✓ punctaj.spec (UPDATED cu noile fisiere)
+  ✓ config_resolver.py (NEW)
+  ✓ SETUP_SUPABASE_WIZARD.py (NEW)
+  ✓ DATABASE_CONNECTION_DIAGNOSTIC.py (NEW)
+  ✓ QUICK_TEST_DATABASE.py (NEW)
+
+Alte fisiere necesare:
+  ✓ discord_auth.py
+  ✓ supabase_sync.py
+  ✓ supabase_employee_manager.py
+  ✓ admin_panel.py
+  ✓ admin_ui.py
+  ✓ etc...
+
+─────────────────
+
+STEP 2: Deschide Command Prompt / PowerShell
+─────────────────────────────────────────────
+
+Windows Command Prompt:
+  Win + R → cmd → Enter
+  cd d:\punctaj
+
+SAU Windows PowerShell:
+  Win + X → Windows PowerShell (Admin)
+  cd d:\punctaj
+
+─────────────────
+
+STEP 3: Ruleaza build script
+────────────────────────────
+
+Optiune 1 - BATCH FILE (mai simplu):
+  build_installer_v2.bat
+
+Optiune 2 - PowerShell (mai frumos):
+  .\build_installer_v2.ps1
+
+─────────────────
+
+STEP 4: Asteapta finalizare
+───────────────────────────
+
+Build progress:
+  ✓ Cleaning previous builds ................... 10 sec
+  ✓ Building executable ........................ 3-5 min
+  ✓ Creating directories ....................... 5 sec
+  ✓ Copying new support files .................. 10 sec
+  ✓ Copying configuration files ............... 5 sec
+  ✓ Copying installer scripts .................. 5 sec
+  ✓ Creating ZIP package ....................... 30 sec
+  ✓ Creating NSIS installer .................... 30 sec
+  ✓ Generating build summary ................... 5 sec
+                                         ─────────────
+                                    Total: 5-10 minute
+
+─────────────────
+
+STEP 5: Verifica rezultate
+──────────────────────────
+
+Dupa finalizare, verifica folder: installer_outputs
+
+Fisiere create:
+  ✓ Punctaj_Portable.zip (~150-200 MB)
+  ✓ Punctaj_Installer.exe (~200-250 MB)
+  ✓ BUILD_SUMMARY.txt
+
+Toate 3 fisiere trebui sa existe!
+
+═══════════════════════════════════════════════════════════════════
+
+COPY TO SECOND DEVICE
+
+OPTIUNE 1: USB DRIVE
+───────────────────
+
+1. Insert USB drive in computer
+2. Copy from installer_outputs\Punctaj_Installer.exe to USB
+3. Eject USB safely
+4. Insert USB in second device
+5. Copy Punctaj_Installer.exe to desktop
+6. Double-click to run installer
+7. Follow Setup Wizard
+
+OPTIUNE 2: CLOUD STORAGE
+────────────────────────
+
+1. Upload Punctaj_Installer.exe to Google Drive / Dropbox / OneDrive
+2. Share link with user
+3. User downloads on second device
+4. Double-click Punctaj_Installer.exe
+5. Follow Setup Wizard
+
+OPTIUNE 3: EMAIL
+───────────────
+
+Note: Only if < 25 MB (try Punctaj_Portable.zip instead)
+
+OPTIUNE 4: PORTABLE (NO INSTALLATION)
+──────────────────────────────────────
+
+1. Copy Punctaj_Portable.zip to USB/Cloud
+2. Extract ZIP on second device
+3. Double-click Punctaj.exe
+4. Setup Wizard appears
+5. Complete configuration
+6. Done!
+
+═══════════════════════════════════════════════════════════════════
+
+ON SECOND DEVICE - USER INSTRUCTIONS
+
+1. Run Punctaj_Installer.exe
+   OR
+   Extract Punctaj_Portable.zip and run Punctaj.exe
+
+2. Installation/Setup Wizard appears
+   ├─ Choose location (recommended: default)
+   └─ Next → Installation begins
+
+3. Setup Wizard launches automatically after installation
+   ├─ Option A: Load from file
+   │           (if you have supabase_config.ini from another device)
+   │
+   ├─ Option B: Enter manually
+   │           - URL: https://yzlkgifumrwqlfgimcai.supabase.co
+   │           - API Key: (from Supabase project)
+   │
+   ├─ Test Connection (verify settings)
+   │
+   └─ Save & Continue
+
+4. Open command prompt in installation folder
+   python QUICK_TEST_DATABASE.py
+   
+   Expected result:
+   ✓ Config file found
+   ✓ Configuration valid
+   ✓ Database connection OK
+
+5. If all green ✓:
+   Double-click Punctaj.exe
+   Application launches and syncs with cloud!
+
+═══════════════════════════════════════════════════════════════════
+
+WHAT IF SOMETHING GOES WRONG?
+
+On second device, run:
+
+python DATABASE_CONNECTION_DIAGNOSTIC.py
+
+This will:
+  1. Search for config file in multiple locations
+  2. Validate configuration format
+  3. Test database connection
+  4. Show detailed report with recommendations
+  5. Save report to connection_diagnostic_report.json
+
+═══════════════════════════════════════════════════════════════════
+
+BUILD COMMAND QUICK REFERENCE
+
+Fast rebuild (Batch):
+  cd /d d:\punctaj && build_installer_v2.bat
+
+Fast rebuild (PowerShell):
+  cd d:\punctaj; .\build_installer_v2.ps1
+
+ZIP only (no NSIS):
+  .\build_installer_v2.ps1 -NoNSIS
+
+Clean only (test):
+  .\build_installer_v2.ps1 -CleanOnly
+
+═══════════════════════════════════════════════════════════════════
+
+EXPECTED OUTPUT
+
+After build completes:
+
+C:\d:\punctaj\installer_outputs>
+  ├─ Punctaj_Portable.zip (150-200 MB)
+  │  └─ Portable archive, extract anywhere
+  │
+  ├─ Punctaj_Installer.exe (200-250 MB)
+  │  └─ Standalone Windows installer (recommended)
+  │
+  └─ BUILD_SUMMARY.txt
+     └─ Build information and checklist
+
+═══════════════════════════════════════════════════════════════════
+
+DISTRIBUTION CHECKLIST
+
+Before distributing:
+
+  [ ] Build completed successfully
+  [ ] No errors in output
+  [ ] BUILD_SUMMARY.txt shows "SUCCESS"
+  [ ] Punctaj_Installer.exe exists and > 100 MB
+  [ ] Punctaj_Portable.zip exists and > 100 MB
+  [ ] Tested on another computer (recommended)
+  [ ] Documented Supabase URL and API key separately
+  [ ] Created README for recipients
+
+═══════════════════════════════════════════════════════════════════
+
+NEXT STEPS AFTER BUILD
+
+1. Test on another computer (if possible)
+   ✓ Extract installer
+   ✓ Run Punctaj_Installer.exe
+   ✓ Complete Setup Wizard
+   ✓ Run QUICK_TEST_DATABASE.py
+   ✓ Verify green checkmarks
+
+2. Prepare distribution media
+   ✓ Copy installer to USB
+   ✓ OR upload to cloud storage
+   ✓ OR email link
+
+3. Provide instructions to users
+   ✓ Include INSTALLER_README.txt
+   ✓ Include Supabase credentials (separately & securely)
+   ✓ Instructions for Setup Wizard
+
+═══════════════════════════════════════════════════════════════════
+
+IMPORTANT NOTES
+
+✓ Setup Wizard auto-launches after installation
+✓ Config auto-discovery from 10+ locations
+✓ Easy transfer config between devices (load from file)
+✓ Complete diagnostic tools included
+✓ Works on Windows 7, 8, 10, 11
+
+═══════════════════════════════════════════════════════════════════
+
+ACTUAL BUILD TIME
+
+Your system:
+  - Build execution: 3-5 minutes
+  - Copying files: 30-60 seconds
+  - ZIP creation: 30 seconds
+  - NSIS compilation: 30 seconds
+  
+  Total: ~5-10 minutes depending on system speed
+
+═══════════════════════════════════════════════════════════════════
+
+READY TO BUILD!
+
+Just run:
+  build_installer_v2.bat
+
+Or:
+  .\build_installer_v2.ps1
+
+Then copy installers from installer_outputs to second device!
+
+═══════════════════════════════════════════════════════════════════

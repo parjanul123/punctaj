@@ -1,0 +1,25 @@
+{
+  "BlackWater": {
+    "Politie": [
+      {
+        "discord_username": "Parjanu",
+        "employee_name": "Dandeny Munoz",
+        "rank": "4",
+        "role": "Plutonier",
+        "points": 0,
+        "id_card_series": "R87G65U68"
+      },
+      {
+        "discord_username": "vLp",
+        "employee_name": "Vulpe Fuchs",
+        "rank": "5",
+        "role": "Locotenent Instructor",
+        "points": 0,
+        "id_card_series": "V37I61A62"
+      }
+    ]
+  },
+  "Saint_Denis": {
+    "Politie": []
+  }
+}

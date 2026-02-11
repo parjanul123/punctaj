@@ -1,0 +1,39 @@
+{
+    "archived_at": "2026-02-10 14:31:01",
+    "institution": "Politie",
+    "city": "Saint_Denis",
+    "reset_by": "Unknown",
+    "discord_id": "",
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "rows": [
+        {
+            "DISCORD": "Ganea",
+            "NUME IC": "Ganea Ionut",
+            "SERIE DE BULETIN": "Z29E43M59",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-10 14:31:01"
+        },
+        {
+            "DISCORD": "Iulian Ardila",
+            "NUME IC": "Iulian Ardila",
+            "SERIE DE BULETIN": "B71V58D47",
+            "RANK": "6",
+            "ROLE": "Sherif Adjunct",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-10 14:31:01"
+        }
+    ],
+    "employee_count": 2,
+    "status": "after_reset",
+    "reset_timestamp": "2026-02-10_14-31-01"
+}

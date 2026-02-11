@@ -1,0 +1,16 @@
+# Punctaj Manager Requirements
+
+# Core GUI
+tkinter>=8.6  # Usually comes with Python
+
+# Discord Authentication
+requests>=2.31.0  # HTTP library for Discord API
+
+# Optional: Database
+supabase>=1.0.0  # Cloud sync (optional)
+
+# Optional: Version Control
+GitPython>=3.1.0  # Git integration (optional)
+
+# Additional utilities
+schedule>=1.1.0  # Task scheduling

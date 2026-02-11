@@ -1,0 +1,102 @@
+================================================================================
+CONFIGURARE DISCORD PENTRU AUTENTIFICARE AUTOMATA
+================================================================================
+
+PASUL 1: CREAZA O APLICATIE DISCORD
+================================================================================
+
+1. Mergi la: https://discord.com/developers/applications
+2. Click pe "New Application" (buton albastru)
+3. Deschide pop-up-ul, introdu un nume (ex: "Punctaj Manager")
+4. Click "Create"
+5. Accepta Terms of Service
+
+PASUL 2: GASESTE CLIENT ID SI CLIENT SECRET
+================================================================================
+
+1. In pagina aplicatiei, mergi la "General Information" (tab-ul din stanga)
+2. Copiaza CLIENT ID:
+   - Vei vedea "APPLICATION ID" - aceasta este CLIENT_ID
+   - Buton "Copy" - click pe el
+
+3. Gaseste CLIENT SECRET:
+   - Sceneaza in jos (scroll down)
+   - Vei vedea "CLIENT SECRET" section
+   - Click pe "Reset Secret" daca nu vezi secrete
+   - Copiaza valuarea
+
+PASUL 3: CONFIGUREAZA REDIRECT URI
+================================================================================
+
+In pagina "General Information":
+1. Sceneaza pana gasesti "Redirects"
+2. Click "Add Redirect"
+3. Introdu: http://localhost:8888/callback
+4. Click "Save Changes"
+
+PASUL 4: COMPLETEAZA FISIERUL discord_config.ini
+================================================================================
+
+Deschide D:\punctaj\discord_config.ini si completeaza:
+
+[discord]
+CLIENT_ID = YOUR_CLIENT_ID_HERE
+CLIENT_SECRET = YOUR_CLIENT_SECRET_HERE
+REDIRECT_URI = http://localhost:8888/callback
+
+EXEMPLU (COMPLETAT):
+[discord]
+CLIENT_ID = 1234567890123456789
+CLIENT_SECRET = aBcDeFgHiJkLmNoPqRsT-uVwXyZ
+REDIRECT_URI = http://localhost:8888/callback
+
+PASUL 5: TESTEAZA AUTENTIFICAREA
+================================================================================
+
+Dupa ce ai completat fisierul:
+
+1. Deschide terminal in D:\punctaj
+2. Activeaza venv: .\venv\Scripts\activate
+3. Ruleaza aplicatia: python punctaj.py
+4. Va aparea o fereastra "Discord Authentication"
+5. Browserul se va deschide automat cu login Discord
+6. Completeaza login-ul in browser
+7. Vei vedea mesajul "Authentication successful!"
+8. Aplicatia continua cu interfata principala
+
+PROBLEME COMUNE:
+================================================================================
+
+Problema: "Discord authentication not configured"
+Solutie: discord_config.ini nu este gasit sau CLIENT_ID nu este completat
+         - Verifica ca fisierul este in D:\punctaj\
+         - Verifica ca CLIENT_ID nu este gol (nu are "YOUR_CLIENT_ID_HERE")
+
+Problema: "Redirect URI mismatch"
+Solutie: REDIRECT_URI din discord_config.ini nu se potriveste cu Discord App
+         - Verifica exact: http://localhost:8888/callback (cu port 8888)
+         - Reia PASUL 3
+
+Problema: Authentication timeout
+Solutie: Serverul local nu se conecteaza corect
+         - Verifica daca portul 8888 nu este folosit de alta aplicatie
+         - Deschide Task Manager -> verifica procese
+
+DUPA AUTENTIFICARE:
+================================================================================
+
+- Aplicatia iti va afisa "Logged in as: [USERNAME]"
+- Datele tale sunt salvate local in: 
+  C:\Users\[USERNAME]\Documents\PunctajManager\.discord_token
+- Token-ul se reimprospatează automat
+- Nu trebuie sa te loghezi din nou
+
+HELP SI SUPORT:
+================================================================================
+
+Daca ai probleme:
+1. Verifica discord_config.ini - asigura-te ca valorile sunt corecte
+2. Ruleaza: python discord_auth_test.py - tool diagnostic
+3. Ruleaza setup wizard: python discord_setup_wizard.py
+
+================================================================================

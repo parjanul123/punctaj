@@ -1,0 +1,45 @@
+{
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "ranks": {
+        "1": "Offiter",
+        "2": "Caporal",
+        "3": "Sergent",
+        "4": "Plutonier",
+        "5": "Locotenent Instructor",
+        "6": "Sherif Adjunct",
+        "7": "Sherif"
+    },
+    "rows": [
+        {
+            "DISCORD": "Ganea",
+            "NUME IC": "Ganea Ionut",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": 0,
+            "SERIE DE BULETIN": "Z29E43M59",
+            "ULTIMA_MOD": "2026-02-02 14:05:36"
+        },
+        {
+            "DISCORD": "Iulian Ardila",
+            "NUME IC": "Iulian Ardila",
+            "RANK": "6",
+            "ROLE": "Sherif Adjunct",
+            "PUNCTAJ": 0,
+            "SERIE DE BULETIN": "B71V58D47",
+            "ULTIMA_MOD": "2026-02-02 14:05:36"
+        }
+    ],
+    "version": 2,
+    "source": "supabase",
+    "city_id": 6,
+    "institution_id": 2,
+    "last_punctaj_update": "2026-02-02 14:05:36"
+}
