@@ -91,6 +91,18 @@
               "can_reset_scores": true,
               "can_deduct_scores": true
             }
+          },
+          "Valentine": {
+            "Politie": {
+              "can_view": true,
+              "can_edit": true,
+              "can_delete": true,
+              "can_add_employee": true,
+              "can_delete_employee": true,
+              "can_add_score": true,
+              "can_reset_scores": true,
+              "can_deduct_scores": true
+            }
           }
         }
       },
@@ -159,7 +171,7 @@
       "updated_at": "2026-01-27T19:13:05.297942+00:00"
     }
   },
-  "last_sync": "2026-02-11T16:56:37.345575",
+  "last_sync": "2026-02-13T19:51:40.564821",
   "sync_status": "cloud_downloaded",
   "user_count": 2
 }

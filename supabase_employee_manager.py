@@ -200,6 +200,38 @@ class SupabaseEmployeeManager:
         
         return False
     
+    def delete_institution(self, institution_id: int) -> bool:
+        """Delete an institution (and all its employees cascade)"""
+        url = f"{self.url}/rest/v1/institutions?id=eq.{institution_id}"
+        
+        try:
+            resp = requests.delete(url, headers=self.headers, timeout=10)
+            if resp.status_code in [200, 204]:
+                print(f"✓ Institution deleted from Supabase (ID: {institution_id})")
+                return True
+            else:
+                print(f"❌ Error deleting institution: Status {resp.status_code}")
+        except Exception as e:
+            print(f"❌ Error deleting institution: {e}")
+        
+        return False
+    
+    def delete_city(self, city_id: int) -> bool:
+        """Delete a city (and all its institutions/employees cascade)"""
+        url = f"{self.url}/rest/v1/cities?id=eq.{city_id}"
+        
+        try:
+            resp = requests.delete(url, headers=self.headers, timeout=10)
+            if resp.status_code in [200, 204]:
+                print(f"✓ City deleted from Supabase (ID: {city_id})")
+                return True
+            else:
+                print(f"❌ Error deleting city: Status {resp.status_code}")
+        except Exception as e:
+            print(f"❌ Error deleting city: {e}")
+        
+        return False
+    
     # ==================== HELPER METHODS ====================
     
     def get_full_structure(self) -> Dict:

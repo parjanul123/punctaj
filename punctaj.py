@@ -504,8 +504,13 @@ def supabase_upload(city, institution, json_data, file_path=None):
     Sincronizează angajații cu Supabase din JSON local
     Include și logurile din folderul logs/
     """
+    print(f"\n📡 SUPABASE_UPLOAD: Starting for {city}/{institution}")
+    print(f"   🔍 SUPABASE_EMPLOYEE_MANAGER_AVAILABLE = {SUPABASE_EMPLOYEE_MANAGER_AVAILABLE}")
+    print(f"   🔍 SUPABASE_SYNC enabled = {SUPABASE_SYNC.enabled if SUPABASE_SYNC else False}")
+    
     if not SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
-        return {"status": "disabled"}
+        print(f"   ⚠️  EMPLOYEE_MANAGER not available - checking SUPABASE_SYNC only")
+        # Don't return here - try SUPABASE_SYNC sync_data instead
 
     try:
         # Extrage angajații din JSON și sincronizează cu Supabase
@@ -513,40 +518,29 @@ def supabase_upload(city, institution, json_data, file_path=None):
         city_id = json_data.get("city_id")
         institution_id = json_data.get("institution_id")
         
-        if not city_id or not institution_id:
-            # Dacă nu avem IDs, încearcă să le găsim
-            try:
-                city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
-                if city_obj:
-                    inst_obj = SUPABASE_EMPLOYEE_MANAGER.get_institution_by_name(city_obj['id'], institution)
-                    if inst_obj:
-                        city_id = city_obj['id']
-                        institution_id = inst_obj['id']
-            except:
-                pass
+        print(f"   📊 Data: {len(rows)} rows, city_id={city_id}, institution_id={institution_id}")
         
-        if not city_id or not institution_id:
-            print(f"⚠️ Eroare: Nu pot găsi city_id/institution_id pentru {city}/{institution}")
-            return {"status": "error", "message": "Missing city/institution IDs"}
-        
-        # Sincronizează fiecare angajat
-        synced = 0
-        for row in rows:
-            try:
-                emp_data = SUPABASE_EMPLOYEE_MANAGER.format_employee_for_supabase(row)
-                # Caută dacă angajatul deja există
-                existing = SUPABASE_EMPLOYEE_MANAGER.get_employee_by_name(institution_id, row.get("NUME IC", ""))
-                if existing:
-                    # Update
-                    SUPABASE_EMPLOYEE_MANAGER.update_employee(existing['id'], emp_data)
-                else:
-                    # Adaugă nou
-                    SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, emp_data)
-                synced += 1
-            except Exception as e:
-                print(f"⚠️ Eroare sync angajat {row.get('NUME IC', 'Unknown')}: {e}")
-        
-        print(f"✓ Sincronizat {synced}/{len(rows)} angajați")
+        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and city_id and institution_id:
+            # Sincronizează fiecare angajat
+            synced = 0
+            for row in rows:
+                try:
+                    emp_data = SUPABASE_EMPLOYEE_MANAGER.format_employee_for_supabase(row)
+                    # Caută dacă angajatul deja există
+                    existing = SUPABASE_EMPLOYEE_MANAGER.get_employee_by_name(institution_id, row.get("NUME IC", ""))
+                    if existing:
+                        # Update
+                        SUPABASE_EMPLOYEE_MANAGER.update_employee(existing['id'], emp_data)
+                    else:
+                        # Adaugă nou
+                        SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, emp_data)
+                    synced += 1
+                except Exception as e:
+                    print(f"   ⚠️  Error sync {row.get('NUME IC', 'Unknown')}: {e}")
+            
+            print(f"   ✅ Synced {synced}/{len(rows)} employees")
+        elif not SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
+            print(f"   ⚠️  Cannot sync employees - MANAGER not available")
         
         # Upload logurile din folderul logs/ (organized by city/institution)
         try:
@@ -583,50 +577,139 @@ def supabase_upload(city, institution, json_data, file_path=None):
                             if response.status_code in [200, 201]:
                                 logs_uploaded += 1
                             else:
-                                print(f"⚠️ Failed to upload log from {os.path.basename(log_file)}: HTTP {response.status_code}")
+                                print(f"   ⚠️  Failed to upload log: HTTP {response.status_code}")
                         
                         # Delete file after successful upload of all logs
                         os.remove(log_file)
-                        print(f"✓ All logs uploaded from: {log_file}")
+                        print(f"   ✅ Uploaded {logs_uploaded} logs from {log_file}")
                     except Exception as e:
-                        print(f"⚠️ Eroare la upload logs din {log_file}: {e}")
-                
-                # Upload global summary
-                summary_file = os.path.join(logs_dir, "SUMMARY_global.json")
-                if os.path.exists(summary_file):
-                    try:
-                        with open(summary_file, 'r', encoding='utf-8') as f:
-                            summary_data = json.load(f)
-                        
-                        # Save summary as metadata or in a separate way
-                        # For now, just mark it as uploaded
-                        print(f"✓ Global summary marked for sync")
-                    except Exception as e:
-                        print(f"⚠️ Eroare la read summary: {e}")
-                
-                if logs_uploaded > 0:
-                    print(f"✓ Uploadate {logs_uploaded} loguri total")
+                        print(f"   ⚠️  Error with logs: {e}")
         except Exception as e:
-            print(f"⚠️ Eroare uploadare loguri: {e}")
+            print(f"   ⚠️  Logs upload error: {e}")
         
         # ===== SYNC INSTITUTION DATA TO SUPABASE DATA TABLE =====
         # This synchronizes the complete institution JSON to the "data" table
-        if SUPABASE_SYNC:
+        if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
             try:
+                print(f"   📡 Calling SUPABASE_SYNC.sync_data()...")
                 result = SUPABASE_SYNC.sync_data(city, institution, json_data)
                 if result:
-                    print(f"✅ Institution data synced to Supabase data table: {city}/{institution}")
+                    print(f"   ✅ Institution data synced: {city}/{institution}")
+                    return {"status": "success"}
                 else:
-                    print(f"⚠️ Failed to sync institution data to Supabase data table: {city}/{institution}")
+                    print(f"   ⚠️  sync_data returned False for {city}/{institution}")
+                    # But don't return error - local save was successful
+                    return {"status": "partial"}
             except Exception as e:
-                print(f"⚠️ Error syncing institution data to Supabase: {e}")
+                print(f"   ❌ Error calling sync_data: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"status": "error", "message": str(e)}
+        else:
+            print(f"   ⚠️  SUPABASE_SYNC not available")
+            return {"status": "no_sync"}
         
-        return {"status": "success" if synced > 0 else "no_data"}
     except Exception as e:
-        print(f"❌ Eroare sincronizare Supabase: {e}")
+        print(f"   ❌ SUPABASE_UPLOAD ERROR: {e}")
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
+
+
+# ================== SYNC ALL CITIES TO SUPABASE ==================
+def sync_all_local_cities_to_supabase():
+    """
+    Sincronizează toate majoritatea și instituțiile din folderul local data/
+    la Supabase tables: cities, institutions, police_data
+    Apelat automat la pornire după Discord login
+    """
+    if not SUPABASE_EMPLOYEE_MANAGER_AVAILABLE or not SUPABASE_SYNC or not SUPABASE_SYNC.enabled:
+        print("⚠️  Cannot sync cities - Supabase managers not available")
+        return
+
+    if not os.path.exists(DATA_DIR):
+        return
+    
+    try:
+        print("\n🌐 SYNCING ALL CITIES & INSTITUTIONS TO SUPABASE...")
+        cities_created = 0
+        institutions_created = 0
+        
+        # Iterează prin toate orașele din local
+        for city_dir_name in sorted(os.listdir(DATA_DIR)):
+            city_path = os.path.join(DATA_DIR, city_dir_name)
+            
+            # Skip files, doar directories
+            if not os.path.isdir(city_path):
+                continue
+            
+            # Check dacă orașul deja există în Supabase
+            existing_city = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city_dir_name)
+            
+            if not existing_city:
+                # Creează orașul
+                print(f"  📍 Creating city: {city_dir_name}")
+                new_city = SUPABASE_EMPLOYEE_MANAGER.add_city(city_dir_name)
+                if new_city:
+                    cities_created += 1
+                else:
+                    print(f"    ❌ Failed to create city")
+                    continue
+            else:
+                existing_city_id = existing_city['id']
+            
+            # Get city ID (din new_city sau existing)
+            if existing_city:
+                city_id = existing_city['id']
+            else:
+                city_id = new_city.get('id') if new_city else None
+            
+            if not city_id:
+                print(f"    ⚠️  Cannot get city ID for {city_dir_name}")
+                continue
+            
+            # Iterează prin instituții din orașul local
+            for json_file in sorted(os.listdir(city_path)):
+                if not json_file.endswith('.json'):
+                    continue
+                
+                institution_name = json_file[:-5]  # Remove .json
+                
+                # Check dacă instituția deja există
+                existing_inst = SUPABASE_EMPLOYEE_MANAGER.get_institution_by_name(city_id, institution_name)
+                
+                if not existing_inst:
+                    # Creează instituția
+                    print(f"    🏢 Creating institution: {institution_name}")
+                    new_inst = SUPABASE_EMPLOYEE_MANAGER.add_institution(city_id, institution_name)
+                    if new_inst:
+                        institutions_created += 1
+                    else:
+                        print(f"       ❌ Failed to create institution")
+                        continue
+                
+                # Și sincronizează și datele la police_data table
+                try:
+                    inst_path = os.path.join(city_path, json_file)
+                    with open(inst_path, 'r', encoding='utf-8') as f:
+                        inst_data = json.load(f)
+                    
+                    # Upload la police_data
+                    result = SUPABASE_SYNC.sync_data(city_dir_name, institution_name, inst_data)
+                    if result:
+                        print(f"       ✅ Synced to police_data: {institution_name}")
+                except Exception as e:
+                    print(f"       ⚠️  Error syncing police_data: {e}")
+        
+        print(f"\n  📊 Summary:")
+        print(f"     📍 Cities created: {cities_created}")
+        print(f"     🏢 Institutions created: {institutions_created}")
+        print(f"  ✅ City sync completed!")
+        
+    except Exception as e:
+        print(f"❌ Error syncing cities: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 # ================== PERMISSION CHECK FUNCTIONS ==================
@@ -1175,6 +1258,17 @@ def save_institution(city, institution, tree, update_timestamp=False, updated_it
 
 def delete_institution(city, institution):
     path = institution_path(city, institution)
+    
+    # ===== GET INSTITUTION ID BEFORE DELETION =====
+    institution_id = None
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                institution_id = data.get("institution_id")
+    except:
+        pass
+    
     if os.path.exists(path):
         os.remove(path)
         # Commit delete-ul la Git
@@ -1185,12 +1279,45 @@ def delete_institution(city, institution):
                 print(f"✓ Git: Ștergere {path}")
             except:
                 pass
+    
+    # ===== SUPABASE SYNC - DELETE INSTITUTION =====
+    if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and institution_id:
+        try:
+            if SUPABASE_EMPLOYEE_MANAGER.delete_institution(institution_id):
+                print(f"✅ Institution synced to Supabase: {city}/{institution}")
+            else:
+                print(f"⚠️ Failed to delete institution from Supabase: {city}/{institution}")
+        except Exception as e:
+            print(f"⚠️ Error syncing institution deletion to Supabase: {e}")
 
 
 def delete_city(city):
+    # ===== GET CITY ID BEFORE DELETION =====
+    city_id = None
+    if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
+        try:
+            city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
+            if city_obj:
+                city_id = city_obj.get('id')
+                print(f"   City ID retrieved: {city_id}")
+        except Exception as e:
+            print(f"   ⚠️ Could not retrieve city ID from Supabase: {e}")
+    
+    # ===== DELETE LOCALLY =====
     path = city_dir(city)
     if os.path.exists(path):
         shutil.rmtree(path)
+        print(f"   ✓ Local city directory deleted: {path}")
+    
+    # ===== SUPABASE SYNC - DELETE CITY =====
+    if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and city_id:
+        try:
+            if SUPABASE_EMPLOYEE_MANAGER.delete_city(city_id):
+                print(f"✅ City synced to Supabase: {city}")
+            else:
+                print(f"⚠️ Failed to delete city from Supabase: {city}")
+        except Exception as e:
+            print(f"⚠️ Error syncing city deletion to Supabase: {e}")
 
 
 # ================== LOGGING HELPER ==================
@@ -2121,6 +2248,11 @@ if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
                     
                     # AUTO-REFRESH: Reîncarcă toate tabelele AUTOMAT
                     print("🔄 Auto-refreshing all tables after cloud sync...")
+                    
+                    # Sync any new cities/institutions to Supabase
+                    print("📍 Syncing all cities & institutions to Supabase...")
+                    root.after(100, sync_all_local_cities_to_supabase)
+                    
                     root.after(500, load_existing_tables)
                     
                     # Refresh Discord section și admin buttons
@@ -2662,12 +2794,16 @@ def add_tab():
     # Creează directorul local pentru oraș
     os.makedirs(city_dir(city), exist_ok=True)
     
-    # Sincronizează cu Supabase (creează orașele automat la primul upload de instituție)
-    if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
+    # ===== SUPABASE SYNC - ADD CITY =====
+    if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
         try:
-            print(f"✓ Oraș nou '{city}' creat - va fi sincronizat la prima instituție")
+            result = SUPABASE_EMPLOYEE_MANAGER.add_city(city)
+            if result:
+                print(f"✓ Oraș nou '{city}' sincronizat cu Supabase (ID: {result.get('id')})")
+            else:
+                print(f"⚠️ Oraș creat local, dar nu s-a putut sincroniza cu Supabase")
         except Exception as e:
-            print(f"⚠️ Eroare pregătire sincronizare oraș: {e}")
+            print(f"⚠️ Eroare sincronizare oraș: {e}")
     
     frame = create_city_ui(city)
     city_notebook.select(frame)
@@ -3839,10 +3975,44 @@ def add_institution(city):
             "rows": []
         }
         
-        # Salvează în JSON local
+        # ===== SYNC INSTITUTION TO SUPABASE FIRST =====
+        institution_id = None
+        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
+            try:
+                print(f"   🔄 Creating institution in Supabase: {city}/{name}")
+                
+                # Get city from Supabase
+                city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
+                if not city_obj:
+                    print(f"   ⚠️ City '{city}' not in Supabase, creating it...")
+                    city_obj = SUPABASE_EMPLOYEE_MANAGER.add_city(city)
+                
+                if city_obj:
+                    city_id = city_obj.get('id')
+                    print(f"   ✓ City found/created with ID: {city_id}")
+                    
+                    # Create institution
+                    inst_obj = SUPABASE_EMPLOYEE_MANAGER.add_institution(city_id, name)
+                    if inst_obj:
+                        institution_id = inst_obj.get('id')
+                        print(f"   ✓ Institution created with ID: {institution_id}")
+                        data["institution_id"] = institution_id
+                        data["city_id"] = city_id
+                    else:
+                        print(f"   ❌ Failed to create institution in Supabase")
+                else:
+                    print(f"   ❌ Failed to get/create city in Supabase")
+            except Exception as e:
+                print(f"   ❌ Error creating institution in Supabase: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Salvează în JSON local (cu institution_id)
         inst_path = institution_path(city, name)
         with open(inst_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
+        
+        print(f"   ✓ Institution JSON saved locally with institution_id={institution_id}")
         
         # Sincronizează cu Supabase (creează tabelul în police_data)
         if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
@@ -4079,17 +4249,53 @@ def add_member(tree, city, institution):
         has_punctaj = "PUNCTAJ" in columns
         save_institution(city, institution, tree, update_timestamp=has_punctaj, updated_items=[new_item], skip_logging=True)
         
-        # ===== SUPABASE SYNC =====
-        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and data.get("source") == "supabase":
+        # ===== SUPABASE SYNC - ALWAYS TRY =====
+        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
+            print(f"\n[DEBUG] Employee sync attempt:")
+            print(f"   SUPABASE_EMPLOYEE_MANAGER_AVAILABLE: {SUPABASE_EMPLOYEE_MANAGER_AVAILABLE}")
+            print(f"   data.get('source'): {data.get('source')}")
+            print(f"   data.get('institution_id'): {data.get('institution_id')}")
             try:
-                employee_data = dict(zip(columns, values))
-                supabase_emp_data = SUPABASE_EMPLOYEE_MANAGER.format_employee_for_supabase(employee_data)
+                institution_id = data.get("institution_id")
                 
-                # Add to Supabase
-                SUPABASE_EMPLOYEE_MANAGER.add_employee(data["institution_id"], supabase_emp_data)
-                print(f"✓ Employee synced to Supabase: {employee_data.get('NUME IC', 'Unknown')}")
+                # If institution_id missing from local data, try to fetch it
+                if not institution_id:
+                    print(f"   ⚠️ institution_id missing locally, fetching from Supabase...")
+                    try:
+                        city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
+                        print(f"      City lookup result: {city_obj}")
+                        if city_obj:
+                            inst_obj = SUPABASE_EMPLOYEE_MANAGER.get_institution_by_name(city_obj['id'], institution)
+                            print(f"      Institution lookup result: {inst_obj}")
+                            if inst_obj:
+                                institution_id = inst_obj['id']
+                                print(f"      ✓ Retrieved institution_id from Supabase: {institution_id}")
+                    except Exception as e:
+                        print(f"      ❌ Could not fetch institution_id: {e}")
+                        import traceback
+                        traceback.print_exc()
+                
+                # If we have institution_id, add employee to Supabase
+                if institution_id:
+                    print(f"   Attempting to add employee with institution_id={institution_id}")
+                    employee_data = dict(zip(columns, values))
+                    print(f"   Employee data: {employee_data}")
+                    supabase_emp_data = SUPABASE_EMPLOYEE_MANAGER.format_employee_for_supabase(employee_data)
+                    print(f"   Formatted for Supabase: {supabase_emp_data}")
+                    
+                    # Add to Supabase
+                    result = SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, supabase_emp_data)
+                    print(f"   Add employee result: {result}")
+                    if result:
+                        print(f"✓ Employee synced to Supabase: {employee_data.get('NUME IC', 'Unknown')}")
+                    else:
+                        print(f"⚠️ Employee added locally but sync to Supabase failed")
+                else:
+                    print(f"   ❌ Cannot sync employee - institution_id not found")
             except Exception as e:
-                print(f"⚠️ Error syncing to Supabase: {e}")
+                print(f"❌ Error syncing employee to Supabase: {e}")
+                import traceback
+                traceback.print_exc()
         
         # ===== ACTION LOGGING =====
         if ACTION_LOGGER:
@@ -4282,14 +4488,72 @@ def delete_members(tree, city, institution):
         # 2. SALVEAZĂ LOCAL ÎN JSON
         save_institution(city, institution, tree)
         
-        # ===== SUPABASE SYNC =====
-        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and data.get("source") == "supabase":
-            try:
-                for supabase_id in deleted_supabase_ids:
-                    SUPABASE_EMPLOYEE_MANAGER.delete_employee(supabase_id)
-                    print(f"✓ Employee deleted from Supabase (ID: {supabase_id})")
-            except Exception as e:
-                print(f"⚠️ Error syncing delete to Supabase: {e}")
+        # ===== SUPABASE SYNC - ALWAYS TRY =====
+        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
+            print(f"\n[DEBUG] Employee delete sync attempt:")
+            print(f"   SUPABASE_EMPLOYEE_MANAGER_AVAILABLE: {SUPABASE_EMPLOYEE_MANAGER_AVAILABLE}")
+            print(f"   Deleted IDs found: {deleted_supabase_ids}")
+            print(f"   Deleted data: {deleted_data}")
+            
+            # If we have IDs, delete them from Supabase
+            if deleted_supabase_ids:
+                try:
+                    for supabase_id in deleted_supabase_ids:
+                        result = SUPABASE_EMPLOYEE_MANAGER.delete_employee(supabase_id)
+                        if result:
+                            print(f"✓ Employee deleted from Supabase (ID: {supabase_id})")
+                        else:
+                            print(f"⚠️ Failed to delete employee {supabase_id} from Supabase")
+                except Exception as e:
+                    print(f"⚠️ Error syncing delete to Supabase: {e}")
+            else:
+                print(f"   ⚠️ No direct Supabase IDs found for deleted employees")
+                print(f"   Attempting to find and delete by name in Supabase...")
+                
+                # Try to find and delete by institution and name
+                try:
+                    institution_id = data.get("institution_id")
+                    
+                    # If institution_id missing, try to fetch it
+                    if not institution_id:
+                        city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
+                        if city_obj:
+                            inst_obj = SUPABASE_EMPLOYEE_MANAGER.get_institution_by_name(city_obj['id'], institution)
+                            if inst_obj:
+                                institution_id = inst_obj['id']
+                                print(f"   ✓ Retrieved institution_id: {institution_id}")
+                    
+                    if institution_id:
+                        # Get all employees from Supabase for this institution
+                        all_employees = SUPABASE_EMPLOYEE_MANAGER.get_employees_by_institution(institution_id)
+                        print(f"   📊 Found {len(all_employees)} employees in Supabase for this institution")
+                        
+                        # Try to match and delete
+                        for deleted_emp in deleted_data:
+                            emp_name = deleted_emp.get('NUME IC', '').strip()
+                            discord = deleted_emp.get('DISCORD', '').strip()
+                            
+                            for supabase_emp in all_employees:
+                                supabase_name = supabase_emp.get('employee_name', '').strip()
+                                supabase_discord = supabase_emp.get('discord_username', '').strip()
+                                
+                                # Match by name or Discord username
+                                if (emp_name and emp_name == supabase_name) or (discord and discord == supabase_discord):
+                                    emp_id = supabase_emp.get('id')
+                                    result = SUPABASE_EMPLOYEE_MANAGER.delete_employee(emp_id)
+                                    if result:
+                                        print(f"✓ Employee deleted from Supabase by name match: {emp_name} (ID: {emp_id})")
+                                    else:
+                                        print(f"⚠️ Failed to delete {emp_name} from Supabase")
+                                    break
+                            else:
+                                print(f"   ⚠️ Could not find '{emp_name}' in Supabase to delete")
+                    else:
+                        print(f"   ❌ Cannot find institution_id to lookup employees")
+                except Exception as e:
+                    print(f"   ❌ Error finding/deleting employees by name: {e}")
+                    import traceback
+                    traceback.print_exc()
         
         # ===== ACTION LOGGING =====
         if ACTION_LOGGER:
@@ -5173,6 +5437,209 @@ if not discord_login():
 # Refresh admin buttons și secțiunea Discord după autentificare
 refresh_admin_buttons()
 refresh_discord_section()
+
+# ================== AUTO-CREATE SUPABASE TABLES AT STARTUP ==================
+def check_and_create_supabase_tables():
+    """
+    Verifică dacă tabelele Supabase există
+    Dacă nu, le creează automat
+    """
+    if not SUPABASE_SYNC or not SUPABASE_SYNC.enabled:
+        print("⚠️  Supabase sync disabled - skipping table check")
+        return True  # Skip, not an error
+    
+    print("\n[STARTUP] 🔍 Checking Supabase tables...")
+    
+    # Tabelele care trebuie să existe
+    required_tables = [
+        'cities',
+        'institutions',
+        'employees',
+        'discord_users',
+        'audit_logs',
+        'police_data',
+        'weekly_reports'
+    ]
+    
+    try:
+        # Verifică existența tabelelor
+        missing_tables = []
+        for table_name in required_tables:
+            try:
+                url = f"{SUPABASE_SYNC.url}/rest/v1/{table_name}?limit=0"
+                response = requests.head(url, headers=SUPABASE_SYNC.headers, timeout=5)
+                
+                if response.status_code == 200:
+                    print(f"  ✅ {table_name:20s} - EXISTS")
+                else:
+                    print(f"  ❌ {table_name:20s} - MISSING (HTTP {response.status_code})")
+                    missing_tables.append(table_name)
+            except Exception as e:
+                print(f"  ⚠️  {table_name:20s} - ERROR: {str(e)[:50]}")
+                missing_tables.append(table_name)
+        
+        if not missing_tables:
+            print("\n✅ All required Supabase tables exist!")
+            return True
+        
+        # Dacă lipsesc tabele, incearcă să le creeze
+        print(f"\n⚠️  Missing {len(missing_tables)} tables: {', '.join(missing_tables)}")
+        print("📋 Attempting automatic table creation...")
+        
+        if create_supabase_tables():
+            print("✅ Supabase tables created successfully!")
+            return True
+        else:
+            print("❌ Failed to create Supabase tables")
+            print("\n📝 Manual setup required:")
+            print("1. Run: python initialize_supabase_tables.py")
+            print("2. Or go to: https://supabase.com/dashboard/project/yzlkgifumrwqlfgimcai/sql/new")
+            print("3. Paste SQL from create_tables_auto.py and click 'Run'")
+            return False
+    
+    except Exception as e:
+        print(f"⚠️  Error checking tables: {e}")
+        return False
+
+def create_supabase_tables():
+    """
+    Creează tabelele Supabase folosind REST API
+    """
+    if not SUPABASE_SYNC:
+        return False
+    
+    CREATE_TABLES_SQL = """
+CREATE TABLE IF NOT EXISTS cities (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS institutions (
+  id BIGSERIAL PRIMARY KEY,
+  city_id BIGINT NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(city_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+  id BIGSERIAL PRIMARY KEY,
+  institution_id BIGINT NOT NULL REFERENCES institutions(id) ON DELETE CASCADE,
+  discord_username TEXT,
+  employee_name TEXT NOT NULL,
+  rank TEXT,
+  role TEXT,
+  punctaj INT DEFAULT 0,
+  id_card_series TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS discord_users (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  discord_id BIGINT UNIQUE,
+  email TEXT,
+  role TEXT DEFAULT 'viewer',
+  is_superuser BOOLEAN DEFAULT FALSE,
+  is_admin BOOLEAN DEFAULT FALSE,
+  permissions JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGSERIAL PRIMARY KEY,
+  discord_id TEXT,
+  discord_username TEXT,
+  action_type TEXT NOT NULL,
+  city TEXT,
+  institution TEXT,
+  entity_name TEXT,
+  details TEXT,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS police_data (
+  id BIGSERIAL PRIMARY KEY,
+  city TEXT NOT NULL,
+  institution TEXT NOT NULL,
+  data JSONB,
+  version INT DEFAULT 1,
+  last_synced TIMESTAMP WITH TIME ZONE,
+  synced_by TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(city, institution)
+);
+
+CREATE TABLE IF NOT EXISTS weekly_reports (
+  id BIGSERIAL PRIMARY KEY,
+  week_start DATE NOT NULL,
+  week_end DATE NOT NULL,
+  city TEXT NOT NULL,
+  institution TEXT NOT NULL,
+  employee_count INT,
+  reset_by TEXT,
+  discord_id TEXT,
+  report_data JSONB,
+  archived_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sync_metadata (
+  id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  version INT DEFAULT 1,
+  last_synced TIMESTAMP WITH TIME ZONE,
+  conflict_resolution TEXT DEFAULT 'latest_timestamp',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_institutions_city_id ON institutions(city_id);
+CREATE INDEX IF NOT EXISTS idx_employees_institution_id ON employees(institution_id);
+CREATE INDEX IF NOT EXISTS idx_employees_discord ON employees(discord_username);
+CREATE INDEX IF NOT EXISTS idx_discord_users_discord_id ON discord_users(discord_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_discord ON audit_logs(discord_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action_type);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_police_data_city_inst ON police_data(city, institution);
+CREATE INDEX IF NOT EXISTS idx_weekly_reports_city_inst ON weekly_reports(city, institution);
+"""
+    
+    # Split into statements
+    statements = [s.strip() for s in CREATE_TABLES_SQL.split(';') if s.strip()]
+    
+    success_count = 0
+    for statement in statements:
+        try:
+            url = f"{SUPABASE_SYNC.url}/rest/v1/rpc/sql"
+            payload = {"query": statement}
+            
+            response = requests.post(url, json=payload, headers=SUPABASE_SYNC.headers, timeout=10)
+            
+            if response.status_code in [200, 201]:
+                success_count += 1
+            else:
+                print(f"  ⚠️  Failed: {response.status_code}")
+        except Exception as e:
+            print(f"  ⚠️  Error: {str(e)[:100]}")
+    
+    print(f"  ✅ {success_count}/{len(statements)} statements executed")
+    return success_count == len(statements)
+
+# Rulează verificarea tabelelor
+print("\n" + "="*70)
+print("STARTUP INITIALIZATION")
+print("="*70)
+check_and_create_supabase_tables()
 
 # Rulează sincronizarea la pornire
 startup_sync()

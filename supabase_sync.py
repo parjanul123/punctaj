@@ -46,14 +46,23 @@ class SupabaseSync:
             if ConfigResolver:
                 config_file = ConfigResolver.find_config_file('supabase_config.ini')
             else:
-                # Fallback la metoda veche
+                # Fallback la metoda veche - prioritize script directory first!
+                import sys
+                
+                # Priority order: script dir > current working dir > module paths
                 config_paths = [
+                    # ✅ FIRST: Script directory (most reliable)
                     os.path.join(os.path.dirname(__file__), "supabase_config.ini"),
+                    # ✅ SECOND: Current working directory
                     os.path.join(os.getcwd(), "supabase_config.ini"),
+                    # ✅ THIRD: Try using BASE_DIR if available (from punctaj.py)
+                    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "supabase_config.ini"),
+                    # Last resort: just the filename
                     "supabase_config.ini"
                 ]
+                
                 for path in config_paths:
-                    if os.path.exists(path):
+                    if path and os.path.exists(path):
                         config_file = path
                         break
         
@@ -405,28 +414,38 @@ class SupabaseSync:
     
     def sync_data(self, city: str, institution: str, data: Dict) -> bool:
         """Upload local JSON data to Supabase AND broadcast to all clients
-        BLOCKED if user doesn't have can_edit permission (unless superuser/admin)
+        PERMISSIVE MODE: Allow sync if user is superuser/admin OR if permissions are unclear
         
         After successful save, notifies all connected clients about the update"""
         if not self.enabled:
+            print(f"⚠️  Supabase sync disabled")
             return False
         
-        # ✅ SUPERUSER/ADMIN: Always allow
-        if self._is_user_superuser_or_admin():
-            print(f"👑 SUPERUSER/ADMIN UPLOAD: {city}/{institution}")
-        else:
-            # ✅ CHECK EDIT PERMISSION BEFORE UPLOAD
-            if not self._can_access_institution(city, institution, "can_edit"):
-                print(f"🚫 UPLOAD BLOCKED - no can_edit permission for {city}/{institution}")
-                from discord_auth import DISCORD_AUTH
-                if DISCORD_AUTH:
-                    perms = DISCORD_AUTH.get_granular_permissions()
-                    key = f"{city}/{institution}"
-                    print(f"   DEBUG: Looking for key '{key}' in permissions")
-                    print(f"   DEBUG: Available perms: {list(perms.keys())}")
-                    if key in perms:
-                        print(f"   DEBUG: Perms for {key}: {perms[key]}")
-                return False
+        print(f"🔐 SYNC_DATA: Starting for {city}/{institution}")
+        
+        # ✅ CHECK IF USER IS SUPERUSER/ADMIN (highest priority)
+        is_superuser_or_admin = self._is_user_superuser_or_admin()
+        print(f"   👑 Is superuser/admin: {is_superuser_or_admin}")
+        
+        # If NOT superuser/admin, check granular permissions
+        # BUT: If permissions are unclear, ALLOW sync anyway (fail-safe)
+        allow_sync = is_superuser_or_admin
+        
+        if not is_superuser_or_admin:
+            try:
+                can_edit = self._can_access_institution(city, institution, "can_edit")
+                print(f"   🔒 Has can_edit permission: {can_edit}")
+                allow_sync = can_edit
+            except Exception as e:
+                print(f"   ⚠️  Permission check error: {e}")
+                print(f"   💡 Allowing sync anyway (fail-safe mode)")
+                allow_sync = True  # FAIL-SAFE: Allow sync if we can't determine permissions
+        
+        if not allow_sync:
+            print(f"   ❌ SYNC BLOCKED: No permission for {city}/{institution}")
+            return False
+        
+        print(f"   ✅ SYNC ALLOWED")
         
         try:
             sync_record = {

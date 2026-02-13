@@ -216,26 +216,29 @@ class DiscordAuth:
                 import os
                 import sys
                 
-                # Find supabase config - includes installation directory
-                meipass = getattr(sys, '_MEIPASS', None)
-                exe_dir = os.path.dirname(sys.executable) if hasattr(sys, 'executable') else None
+                # Find supabase config - PRIORITY ORDER MATTERS! (same as supabase_sync.py)
+                # ✅ Check script directory FIRST (most reliable)
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                cwd = os.getcwd()
                 
                 config_paths = [
-                    os.path.join(meipass, "supabase_config.ini") if meipass else None,
-                    os.path.join(exe_dir, "supabase_config.ini") if exe_dir else None,
-                    os.path.dirname(sys.executable),  # Installation directory where EXE is
-                    os.path.join(os.path.dirname(__file__), "supabase_config.ini"),
-                    os.path.join(os.getcwd(), "supabase_config.ini"),  # Current working directory
-                    os.path.join(os.path.expanduser("~"), "Documents/PunctajManager/supabase_config.ini"),
+                    # ✅ FIRST: Script directory (most reliable)
+                    os.path.join(script_dir, "supabase_config.ini"),
+                    # ✅ SECOND: Current working directory  
+                    os.path.join(cwd, "supabase_config.ini"),
+                    # ✅ THIRD: Parent directory
+                    os.path.join(os.path.dirname(script_dir), "supabase_config.ini"),
+                    # Last resort: just the filename
                     "supabase_config.ini"
                 ]
                 
-                # Remove None entries
-                config_paths = [p for p in config_paths if p is not None]
+                # Remove duplicates while preserving order
+                seen = set()
+                config_paths = [p for p in config_paths if not (p in seen or seen.add(p))]
                 
                 config_found = None
                 for path in config_paths:
-                    if os.path.exists(path):
+                    if path and os.path.exists(path):
                         config_found = path
                         print(f"[DEBUG] Found config at: {path}")
                         break
@@ -270,25 +273,28 @@ class DiscordAuth:
                     import os
                     import sys
                     
-                    # Find supabase config - includes installation directory
-                    meipass = getattr(sys, '_MEIPASS', None)
-                    exe_dir = os.path.dirname(sys.executable) if hasattr(sys, 'executable') else None
+                    # Find supabase config - PRIORITY ORDER MATTERS!
+                    # ✅ Check script directory FIRST (same as supabase_sync.py)
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    cwd = os.getcwd()
                     
                     config_paths = [
-                        os.path.join(meipass, "supabase_config.ini") if meipass else None,
-                        os.path.join(exe_dir, "supabase_config.ini") if exe_dir else None,
-                        os.path.dirname(sys.executable),  # Installation directory where EXE is
-                        os.path.join(os.path.dirname(__file__), "supabase_config.ini"),
-                        os.path.join(os.getcwd(), "supabase_config.ini"),  # Current working directory
-                        os.path.join(os.path.expanduser("~"), "Documents/PunctajManager/supabase_config.ini"),
+                        # ✅ FIRST: Script directory (most reliable)
+                        os.path.join(script_dir, "supabase_config.ini"),
+                        # ✅ SECOND: Current working directory  
+                        os.path.join(cwd, "supabase_config.ini"),
+                        # ✅ THIRD: Parent directory
+                        os.path.join(os.path.dirname(script_dir), "supabase_config.ini"),
+                        # Last resort: just the filename
                         "supabase_config.ini"
                     ]
                     
-                    # Remove None entries
-                    config_paths = [p for p in config_paths if p is not None]
+                    # Remove duplicates while preserving order
+                    seen = set()
+                    config_paths = [p for p in config_paths if not (p in seen or seen.add(p))]
                     
                     for path in config_paths:
-                        if os.path.exists(path):
+                        if path and os.path.exists(path):
                             supabase = SupabaseSync(path)
                             _log_auth_debug(f"[DEBUG] Initialized supabase from {path}")
                             break
