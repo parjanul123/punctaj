@@ -8,18 +8,10 @@
         "PUNCTAJ",
         "ULTIMA_MOD"
     ],
-    "ranks": {
-        "1": "Offiter",
-        "2": "Caporal",
-        "3": "Sergent",
-        "4": "Plutonier",
-        "5": "Locotenent Instructor",
-        "6": "Sherif Adjunct",
-        "7": "Sherif"
-    },
+    "ranks": {},
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:44:25",
-    "version": 2,
+    "last_punctaj_update": "2026-02-15 01:47:09",
+    "version": 1,
     "last_synced": null,
     "pending_sync": false,
     "rows": [
@@ -29,8 +21,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "39",
-            "ULTIMA_MOD": "2026-02-15 01:44:25"
+            "PUNCTAJ": "3",
+            "ULTIMA_MOD": "2026-02-15 01:47:09"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -38,8 +30,8 @@
             "SERIE DE BULETIN": "S79A64B71",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "28",
-            "ULTIMA_MOD": "2026-02-15 01:43:40"
+            "PUNCTAJ": "3",
+            "ULTIMA_MOD": "2026-02-15 01:47:09"
         },
         {
             "DISCORD": "Fane Manevra",
@@ -47,8 +39,8 @@
             "SERIE DE BULETIN": "W92H36A72",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "24",
-            "ULTIMA_MOD": "2026-02-15 01:40:22"
+            "PUNCTAJ": "3",
+            "ULTIMA_MOD": "2026-02-15 01:47:09"
         },
         {
             "DISCORD": "Sintact",
@@ -56,8 +48,8 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "20",
-            "ULTIMA_MOD": "2026-02-15 01:43:40"
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:45:34"
         },
         {
             "DISCORD": "GUSTAVO",
@@ -65,8 +57,8 @@
             "SERIE DE BULETIN": "U44O45X31",
             "RANK": "3",
             "ROLE": "Sergent",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-15 01:37:15"
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:45:34"
         },
         {
             "DISCORD": "Ion.policarpov",
@@ -74,8 +66,8 @@
             "SERIE DE BULETIN": "W26G69Z92",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-15 01:43:40"
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:45:34"
         },
         {
             "DISCORD": "Pelicanu",
@@ -83,8 +75,8 @@
             "SERIE DE BULETIN": "T97C56S78",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-15 01:44:25"
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:45:34"
         },
         {
             "DISCORD": "Arian",
@@ -92,8 +84,8 @@
             "SERIE DE BULETIN": "M78Y78Y14",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "2",
-            "ULTIMA_MOD": "2026-02-15 01:43:40"
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:45:34"
         },
         {
             "DISCORD": "MBogdan",
@@ -102,7 +94,7 @@
             "RANK": "4",
             "ROLE": "Plutonier",
             "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-15 01:26:14"
+            "ULTIMA_MOD": "2026-02-15 01:45:34"
         }
     ]
 }
