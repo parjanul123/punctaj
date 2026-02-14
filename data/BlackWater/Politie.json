@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:36:14",
+    "last_punctaj_update": "2026-02-15 01:37:15",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -38,8 +38,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "11",
-            "ULTIMA_MOD": "2026-02-15 01:36:14"
+            "PUNCTAJ": "16",
+            "ULTIMA_MOD": "2026-02-15 01:37:15"
         },
         {
             "DISCORD": "Fane Manevra",
@@ -49,6 +49,15 @@
             "ROLE": "Offiter",
             "PUNCTAJ": "11",
             "ULTIMA_MOD": "2026-02-15 01:36:14"
+        },
+        {
+            "DISCORD": "GUSTAVO",
+            "NUME IC": "Acord Bandaj",
+            "SERIE DE BULETIN": "U44O45X31",
+            "RANK": "3",
+            "ROLE": "Sergent",
+            "PUNCTAJ": "10",
+            "ULTIMA_MOD": "2026-02-15 01:37:15"
         },
         {
             "DISCORD": "Pelicanu",
@@ -78,22 +87,13 @@
             "ULTIMA_MOD": "2026-02-15 01:26:14"
         },
         {
-            "DISCORD": "GUSTAVO",
-            "NUME IC": "Acord Bandaj",
-            "SERIE DE BULETIN": "U44O45X31",
-            "RANK": "3",
-            "ROLE": "Sergent",
-            "PUNCTAJ": "5",
-            "ULTIMA_MOD": "2026-02-15 01:36:14"
-        },
-        {
             "DISCORD": "Ion.policarpov",
             "NUME IC": "Ion-Cucu",
             "SERIE DE BULETIN": "W26G69Z92",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-15 01:29:40"
+            "PUNCTAJ": "5",
+            "ULTIMA_MOD": "2026-02-15 01:37:15"
         },
         {
             "DISCORD": "Arian",
