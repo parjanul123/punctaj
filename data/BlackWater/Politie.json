@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:41:12",
+    "last_punctaj_update": "2026-02-15 01:43:40",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -33,6 +33,15 @@
             "ULTIMA_MOD": "2026-02-15 01:41:12"
         },
         {
+            "DISCORD": "Cristofor Columb",
+            "NUME IC": "Cristofor Columb",
+            "SERIE DE BULETIN": "S79A64B71",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": "28",
+            "ULTIMA_MOD": "2026-02-15 01:43:40"
+        },
+        {
             "DISCORD": "Fane Manevra",
             "NUME IC": "Fane Manevra",
             "SERIE DE BULETIN": "W92H36A72",
@@ -42,22 +51,13 @@
             "ULTIMA_MOD": "2026-02-15 01:40:22"
         },
         {
-            "DISCORD": "Cristofor Columb",
-            "NUME IC": "Cristofor Columb",
-            "SERIE DE BULETIN": "S79A64B71",
-            "RANK": "7",
-            "ROLE": "Sherif",
-            "PUNCTAJ": "26",
-            "ULTIMA_MOD": "2026-02-15 01:41:12"
-        },
-        {
             "DISCORD": "Sintact",
             "NUME IC": "Jay Rocky",
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "18",
-            "ULTIMA_MOD": "2026-02-15 01:41:12"
+            "PUNCTAJ": "20",
+            "ULTIMA_MOD": "2026-02-15 01:43:40"
         },
         {
             "DISCORD": "GUSTAVO",
@@ -74,8 +74,8 @@
             "SERIE DE BULETIN": "W26G69Z92",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "8",
-            "ULTIMA_MOD": "2026-02-15 01:40:22"
+            "PUNCTAJ": "10",
+            "ULTIMA_MOD": "2026-02-15 01:43:40"
         },
         {
             "DISCORD": "Pelicanu",
@@ -101,8 +101,8 @@
             "SERIE DE BULETIN": "M78Y78Y14",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-15 01:34:06"
+            "PUNCTAJ": "2",
+            "ULTIMA_MOD": "2026-02-15 01:43:40"
         }
     ]
 }
