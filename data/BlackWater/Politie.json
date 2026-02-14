@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:29:40",
+    "last_punctaj_update": "2026-02-15 01:32:32",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -85,6 +85,15 @@
             "ROLE": "Caporal",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-15 01:29:40"
+        },
+        {
+            "DISCORD": "Fane Manevra",
+            "NUME IC": "Fane Manevra",
+            "SERIE DE BULETIN": "W92H36A72",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:32:32"
         }
     ]
 }
