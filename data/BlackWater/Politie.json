@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:34:50",
+    "last_punctaj_update": "2026-02-15 01:35:38",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -29,8 +29,8 @@
             "SERIE DE BULETIN": "S79A64B71",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-02-15 01:34:50"
+            "PUNCTAJ": "6",
+            "ULTIMA_MOD": "2026-02-15 01:35:38"
         },
         {
             "DISCORD": "Parjanu",
@@ -38,8 +38,17 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-02-15 01:34:50"
+            "PUNCTAJ": "6",
+            "ULTIMA_MOD": "2026-02-15 01:35:38"
+        },
+        {
+            "DISCORD": "Fane Manevra",
+            "NUME IC": "Fane Manevra",
+            "SERIE DE BULETIN": "W92H36A72",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "6",
+            "ULTIMA_MOD": "2026-02-15 01:35:38"
         },
         {
             "DISCORD": "Pelicanu",
@@ -85,15 +94,6 @@
             "ROLE": "Caporal",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-15 01:29:40"
-        },
-        {
-            "DISCORD": "Fane Manevra",
-            "NUME IC": "Fane Manevra",
-            "SERIE DE BULETIN": "W92H36A72",
-            "RANK": "1",
-            "ROLE": "Offiter",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-02-15 01:34:50"
         },
         {
             "DISCORD": "Arian",
