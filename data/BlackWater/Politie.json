@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:26:14",
+    "last_punctaj_update": "2026-02-15 01:28:05",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -67,6 +67,15 @@
             "ROLE": "Plutonier",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-15 01:26:14"
+        },
+        {
+            "DISCORD": "GUSTAVO",
+            "NUME IC": "Acord Bandaj",
+            "SERIE DE BULETIN": "U44O45X31",
+            "RANK": "3",
+            "ROLE": "Sergent",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:28:05"
         }
     ]
 }
