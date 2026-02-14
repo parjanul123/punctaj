@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:40:22",
+    "last_punctaj_update": "2026-02-15 01:41:12",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -29,17 +29,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "29",
-            "ULTIMA_MOD": "2026-02-15 01:40:22"
-        },
-        {
-            "DISCORD": "Cristofor Columb",
-            "NUME IC": "Cristofor Columb",
-            "SERIE DE BULETIN": "S79A64B71",
-            "RANK": "7",
-            "ROLE": "Sherif",
-            "PUNCTAJ": "21",
-            "ULTIMA_MOD": "2026-02-15 01:39:35"
+            "PUNCTAJ": "34",
+            "ULTIMA_MOD": "2026-02-15 01:41:12"
         },
         {
             "DISCORD": "Fane Manevra",
@@ -51,13 +42,13 @@
             "ULTIMA_MOD": "2026-02-15 01:40:22"
         },
         {
-            "DISCORD": "GUSTAVO",
-            "NUME IC": "Acord Bandaj",
-            "SERIE DE BULETIN": "U44O45X31",
-            "RANK": "3",
-            "ROLE": "Sergent",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-15 01:37:15"
+            "DISCORD": "Cristofor Columb",
+            "NUME IC": "Cristofor Columb",
+            "SERIE DE BULETIN": "S79A64B71",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": "26",
+            "ULTIMA_MOD": "2026-02-15 01:41:12"
         },
         {
             "DISCORD": "Sintact",
@@ -65,8 +56,17 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "13",
-            "ULTIMA_MOD": "2026-02-15 01:40:22"
+            "PUNCTAJ": "18",
+            "ULTIMA_MOD": "2026-02-15 01:41:12"
+        },
+        {
+            "DISCORD": "GUSTAVO",
+            "NUME IC": "Acord Bandaj",
+            "SERIE DE BULETIN": "U44O45X31",
+            "RANK": "3",
+            "ROLE": "Sergent",
+            "PUNCTAJ": "10",
+            "ULTIMA_MOD": "2026-02-15 01:37:15"
         },
         {
             "DISCORD": "Ion.policarpov",
@@ -83,8 +83,8 @@
             "SERIE DE BULETIN": "T97C56S78",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-15 01:20:19"
+            "PUNCTAJ": "5",
+            "ULTIMA_MOD": "2026-02-15 01:41:12"
         },
         {
             "DISCORD": "MBogdan",
