@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:32:32",
+    "last_punctaj_update": "2026-02-15 01:34:06",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -94,6 +94,15 @@
             "ROLE": "Offiter",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-15 01:32:32"
+        },
+        {
+            "DISCORD": "Arian",
+            "NUME IC": "Bill-MCnue",
+            "SERIE DE BULETIN": "M78Y78Y14",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:34:06"
         }
     ]
 }
