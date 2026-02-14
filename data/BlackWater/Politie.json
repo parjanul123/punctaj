@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 01:43:40",
+    "last_punctaj_update": "2026-02-15 01:44:25",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -29,8 +29,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "34",
-            "ULTIMA_MOD": "2026-02-15 01:41:12"
+            "PUNCTAJ": "39",
+            "ULTIMA_MOD": "2026-02-15 01:44:25"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -83,17 +83,8 @@
             "SERIE DE BULETIN": "T97C56S78",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "5",
-            "ULTIMA_MOD": "2026-02-15 01:41:12"
-        },
-        {
-            "DISCORD": "MBogdan",
-            "NUME IC": "Bogdan Maldarescu",
-            "SERIE DE BULETIN": "E42S23Z10",
-            "RANK": "4",
-            "ROLE": "Plutonier",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-15 01:26:14"
+            "PUNCTAJ": "10",
+            "ULTIMA_MOD": "2026-02-15 01:44:25"
         },
         {
             "DISCORD": "Arian",
@@ -103,6 +94,15 @@
             "ROLE": "Offiter",
             "PUNCTAJ": "2",
             "ULTIMA_MOD": "2026-02-15 01:43:40"
+        },
+        {
+            "DISCORD": "MBogdan",
+            "NUME IC": "Bogdan Maldarescu",
+            "SERIE DE BULETIN": "E42S23Z10",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 01:26:14"
         }
     ]
 }
