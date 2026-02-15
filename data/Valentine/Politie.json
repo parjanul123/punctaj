@@ -18,7 +18,7 @@
         "7": "Sheriff"
     },
     "rankuri_desc": "Rank 1: Offiter\nRank 2: Caporal\nRank 3: Sergent\nRank 4: Plutonier\nRank 5: Locotenent\nRank 6: Sheriff Adjunct\nRank 7: Sheriff",
-    "last_punctaj_update": "2026-02-15 16:14:54",
+    "last_punctaj_update": "2026-02-15 16:26:25",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
@@ -31,6 +31,15 @@
             "ROLE": "Sheriff",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-15 16:14:54"
+        },
+        {
+            "DISCORD": "Katinskyn",
+            "NUME IC": "Don Katinskyn",
+            "SERIE DE BULETIN": "I65U96M86",
+            "RANK": "6",
+            "ROLE": "Sheriff Adjunct",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-15 16:26:25"
         }
     ]
 }
