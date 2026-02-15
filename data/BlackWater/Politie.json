@@ -10,20 +10,11 @@
     ],
     "ranks": {},
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 02:01:03",
+    "last_punctaj_update": "2026-02-15 02:01:43",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
     "rows": [
-        {
-            "DISCORD": "Parjanu",
-            "NUME IC": "Dandeny Munoz",
-            "SERIE DE BULETIN": "R87G65U68",
-            "RANK": "4",
-            "ROLE": "Plutonier",
-            "PUNCTAJ": "15",
-            "ULTIMA_MOD": "2026-02-15 01:57:53"
-        },
         {
             "DISCORD": "Sintact",
             "NUME IC": "Jay Rocky",
@@ -41,6 +32,15 @@
             "ROLE": "Sergent",
             "PUNCTAJ": "17",
             "ULTIMA_MOD": "2026-02-15 02:01:03"
+        },
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": "15",
+            "ULTIMA_MOD": "2026-02-15 01:57:53"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -75,8 +75,8 @@
             "SERIE DE BULETIN": "T97C56S78",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-15 01:53:15"
+            "PUNCTAJ": "5",
+            "ULTIMA_MOD": "2026-02-15 02:01:43"
         },
         {
             "DISCORD": "Arian",
