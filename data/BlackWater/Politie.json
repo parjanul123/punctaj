@@ -10,7 +10,7 @@
     ],
     "ranks": {},
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 02:03:16",
+    "last_punctaj_update": "2026-02-15 02:03:41",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
@@ -25,6 +25,15 @@
             "ULTIMA_MOD": "2026-02-15 02:03:16"
         },
         {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": "31",
+            "ULTIMA_MOD": "2026-02-15 02:03:41"
+        },
+        {
             "DISCORD": "GUSTAVO",
             "NUME IC": "Acord Bandaj",
             "SERIE DE BULETIN": "U44O45X31",
@@ -32,15 +41,6 @@
             "ROLE": "Sergent",
             "PUNCTAJ": "17",
             "ULTIMA_MOD": "2026-02-15 02:01:03"
-        },
-        {
-            "DISCORD": "Parjanu",
-            "NUME IC": "Dandeny Munoz",
-            "SERIE DE BULETIN": "R87G65U68",
-            "RANK": "4",
-            "ROLE": "Plutonier",
-            "PUNCTAJ": "18",
-            "ULTIMA_MOD": "2026-02-15 02:03:16"
         },
         {
             "DISCORD": "Cristofor Columb",
