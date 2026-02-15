@@ -10,7 +10,7 @@
     ],
     "ranks": {},
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-15 02:06:03",
+    "last_punctaj_update": "2026-02-15 02:06:37",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
@@ -21,8 +21,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "39",
-            "ULTIMA_MOD": "2026-02-15 02:06:03"
+            "PUNCTAJ": "42",
+            "ULTIMA_MOD": "2026-02-15 02:06:37"
         },
         {
             "DISCORD": "Sintact",
@@ -30,17 +30,8 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "32",
-            "ULTIMA_MOD": "2026-02-15 02:06:03"
-        },
-        {
-            "DISCORD": "GUSTAVO",
-            "NUME IC": "Acord Bandaj",
-            "SERIE DE BULETIN": "U44O45X31",
-            "RANK": "3",
-            "ROLE": "Sergent",
-            "PUNCTAJ": "17",
-            "ULTIMA_MOD": "2026-02-15 02:01:03"
+            "PUNCTAJ": "35",
+            "ULTIMA_MOD": "2026-02-15 02:06:37"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -61,13 +52,22 @@
             "ULTIMA_MOD": "2026-02-15 02:06:03"
         },
         {
+            "DISCORD": "GUSTAVO",
+            "NUME IC": "Acord Bandaj",
+            "SERIE DE BULETIN": "U44O45X31",
+            "RANK": "3",
+            "ROLE": "Sergent",
+            "PUNCTAJ": "17",
+            "ULTIMA_MOD": "2026-02-15 02:01:03"
+        },
+        {
             "DISCORD": "Ion.policarpov",
             "NUME IC": "Ion-Cucu",
             "SERIE DE BULETIN": "W26G69Z92",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "4",
-            "ULTIMA_MOD": "2026-02-15 02:05:17"
+            "PUNCTAJ": "7",
+            "ULTIMA_MOD": "2026-02-15 02:06:37"
         },
         {
             "DISCORD": "Fane Manevra",
@@ -75,8 +75,8 @@
             "SERIE DE BULETIN": "W92H36A72",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-02-15 02:03:16"
+            "PUNCTAJ": "6",
+            "ULTIMA_MOD": "2026-02-15 02:06:37"
         },
         {
             "DISCORD": "Arian",
