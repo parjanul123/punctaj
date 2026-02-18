@@ -69,7 +69,8 @@ def repair_permissions_in_supabase():
     import requests
     import configparser
     
-    config_path = Path(r"d:\punctaj\supabase_config.ini")
+    # Dynamic path - works on any drive
+    config_path = Path(os.path.dirname(os.path.abspath(__file__))) / "supabase_config.ini"
     config = configparser.ConfigParser()
     config.read(config_path)
     

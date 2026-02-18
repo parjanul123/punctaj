@@ -1,0 +1,36 @@
+{
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "ranks": {
+        "1": "Offiter",
+        "2": "Caporal",
+        "3": "Sergent",
+        "4": "Plutonier",
+        "5": "Locotenent",
+        "6": "Sheriff Adjunct",
+        "7": "Sheriff"
+    },
+    "rankuri_desc": "Rank 1: Offiter\nRank 2: Caporal\nRank 3: Sergent\nRank 4: Plutonier\nRank 5: Locotenent\nRank 6: Sheriff Adjunct\nRank 7: Sheriff",
+    "last_punctaj_update": "2026-02-18 19:26:13",
+    "version": 1,
+    "last_synced": null,
+    "pending_sync": false,
+    "rows": [
+        {
+            "DISCORD": "vlp",
+            "NUME IC": "Vulpe Fuchs",
+            "SERIE DE BULETIN": "Y37I61A62",
+            "RANK": "7",
+            "ROLE": "Sheriff",
+            "PUNCTAJ": "42",
+            "ULTIMA_MOD": "2026-02-18 19:26:13"
+        }
+    ]
+}

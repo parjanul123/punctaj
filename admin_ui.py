@@ -217,7 +217,15 @@ def create_users_tab(frame, supabase_sync, discord_auth):
 def get_available_institutions():
     """Scan /data folder to get all cities and institutions"""
     import os
-    data_path = os.path.join(os.path.expanduser('~'), 'Documents', 'PunctajManager', 'data')
+    import sys
+    
+    # Fix for EXE: Look in EXE directory first, then fallback to Documents
+    if getattr(sys, 'frozen', False):
+        # Running as EXE
+        data_path = os.path.join(os.path.dirname(sys.executable), 'data')
+    else:
+        # Running as Python script
+        data_path = os.path.join(os.path.expanduser('~'), 'Documents', 'PunctajManager', 'data')
     
     cities = {}
     try:

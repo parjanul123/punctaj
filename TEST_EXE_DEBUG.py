@@ -5,8 +5,11 @@ Test EXE Discord auth with captured output
 import subprocess
 import time
 import os
+from pathlib import Path
 
-log_file = r"d:\punctaj\exe_debug.log"
+# Dynamic paths - works on any drive
+BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+log_file = BASE_DIR / "exe_debug.log"
 
 print("Starting EXE with output capture...")
 print(f"Log file: {log_file}")
@@ -14,7 +17,7 @@ print(f"Log file: {log_file}")
 # Run EXE with output redirect
 with open(log_file, 'w', encoding='utf-8') as f:
     process = subprocess.Popen(
-        [r"d:\punctaj\dist\punctaj.exe"],
+        [str(BASE_DIR / "dist" / "punctaj.exe")],
         stdout=f,
         stderr=subprocess.STDOUT,
         text=True

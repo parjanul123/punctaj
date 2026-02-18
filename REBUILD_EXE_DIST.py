@@ -9,7 +9,8 @@ import subprocess
 from pathlib import Path
 import shutil
 
-root = Path(r"d:\punctaj")
+# Dynamic path - works on any drive
+root = Path(os.path.dirname(os.path.abspath(__file__)))
 
 print("\n" + "=" * 80)
 print("🔨 REBUILD EXE FOR DISTRIBUTION")

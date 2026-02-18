@@ -69,8 +69,10 @@ try:
         '--add-data', f'{os.path.join(SOURCE_DIR, "discord_config.ini")};.',
         '--add-data', f'{os.path.join(SOURCE_DIR, "supabase_config.ini")};.',
         '--distpath', EXE_OUTPUT,
-        '--buildpath', os.path.join(SOURCE_DIR, 'build_temp'),
+        '--workpath', os.path.join(SOURCE_DIR, 'build_temp'),
         '--specpath', os.path.join(SOURCE_DIR, 'build_temp'),
+        '--noconfirm',
+        '--clean',
         os.path.join(SOURCE_DIR, 'punctaj.py')
     ]
     

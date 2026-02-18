@@ -35,9 +35,22 @@ class RealTimeSyncManager:
         self.running = False
         self.sync_thread = None
         self.last_sync_time = {}  # Ține minte ultima sincronizare per instituție
-        self.sync_callbacks = {}  # Callback-uri pentru notificări UI
+        self.sync_callbacks = {}  # Callback-uri pentru notificări UI per instituție
+        self.global_sync_callback = None  # 🔔 GLOBAL callback - apelat dupa FIECARE sincronizare
         
         print(f"📡 RealTimeSyncManager initialized (interval: {sync_interval}s)")
+    
+    def set_global_sync_callback(self, callback: Callable):
+        """
+        🔔 Seteaza un global callback care va fi apelat dupa fiecare sincronizare
+        Aceasta e util pentru a reîncarca UI-ul dupa descarcarea datelor din cloud
+        
+        Args:
+            callback: Functie care va fi apelata dupa fiecare sync (fara parametri)
+        """
+        self.global_sync_callback = callback
+        print(f"✅ Global sync callback registered")
+    
     
     def start(self):
         """Pornește firul de sincronizare"""
@@ -82,6 +95,14 @@ class RealTimeSyncManager:
                     # Pentru fiecare instituție sincronizată
                     for city, institution in synced_institutions:
                         self._handle_sync_change(city, institution)
+                    
+                    # 🔔 APELEAZĂ GLOBAL CALLBACK DUPA SINCRONIZARE
+                    if self.global_sync_callback:
+                        try:
+                            print(f"   🔔 Calling global sync callback to refresh UI...")
+                            self.global_sync_callback()
+                        except Exception as e:
+                            print(f"   ⚠️ Error calling global sync callback: {e}")
                 
                 # Așteaptă până la următoarea sincronizare
                 time.sleep(self.sync_interval)

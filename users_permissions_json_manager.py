@@ -540,8 +540,10 @@ def demo():
         print("❌ Invalid config file")
         return
     
-    # Create manager
-    data_dir = "data"
+    # Create manager - Dynamic path that works on any drive
+    from pathlib import Path
+    BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = str(BASE_DIR / "data")
     manager = UsersPermissionsJsonManager(url, key, data_dir)
     manager.ensure_json_exists()
     

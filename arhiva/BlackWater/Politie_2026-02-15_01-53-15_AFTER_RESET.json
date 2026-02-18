@@ -1,0 +1,102 @@
+{
+    "archived_at": "2026-02-15 01:53:15",
+    "institution": "Politie",
+    "city": "BlackWater",
+    "reset_by": "parjanu",
+    "discord_id": "703316932232872016",
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "rows": [
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "Cristofor Columb",
+            "NUME IC": "Cristofor Columb",
+            "SERIE DE BULETIN": "S79A64B71",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "Fane Manevra",
+            "NUME IC": "Fane Manevra",
+            "SERIE DE BULETIN": "W92H36A72",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "Sintact",
+            "NUME IC": "Jay Rocky",
+            "SERIE DE BULETIN": "J82B48Z62",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "GUSTAVO",
+            "NUME IC": "Acord Bandaj",
+            "SERIE DE BULETIN": "U44O45X31",
+            "RANK": "3",
+            "ROLE": "Sergent",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "Ion.policarpov",
+            "NUME IC": "Ion-Cucu",
+            "SERIE DE BULETIN": "W26G69Z92",
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "Pelicanu",
+            "NUME IC": "Cindea Geani",
+            "SERIE DE BULETIN": "T97C56S78",
+            "RANK": "6",
+            "ROLE": "Sherif Adjunct",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "Arian",
+            "NUME IC": "Bill-MCnue",
+            "SERIE DE BULETIN": "M78Y78Y14",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        },
+        {
+            "DISCORD": "MBogdan",
+            "NUME IC": "Bogdan Maldarescu",
+            "SERIE DE BULETIN": "E42S23Z10",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-02-15 01:53:15"
+        }
+    ],
+    "employee_count": 9,
+    "status": "after_reset",
+    "reset_timestamp": "2026-02-15_01-53-15"
+}

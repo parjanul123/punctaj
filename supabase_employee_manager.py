@@ -253,6 +253,7 @@ class SupabaseEmployeeManager:
     def format_employee_for_app(self, emp: Dict) -> Dict:
         """Format Supabase employee to app format"""
         return {
+            "id": emp.get("id"),  # IMPORTANT: Preserve for delete operations
             "DISCORD": emp.get("discord_username", ""),
             "NUME IC": emp.get("employee_name", ""),
             "RANK": emp.get("rank", ""),

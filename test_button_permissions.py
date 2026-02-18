@@ -4,7 +4,9 @@
 Test script to verify button permission enforcement
 """
 import sys
-sys.path.insert(0, 'd:\\punctaj')
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
 # Mock DISCORD_AUTH and INSTITUTION_PERM_MANAGER
 class MockDiscordAuth:

@@ -4,7 +4,9 @@
 Visual test of the new Logs Window
 """
 import sys
-sys.path.insert(0, 'd:\\punctaj')
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
 import tkinter as tk
 from tkinter import ttk

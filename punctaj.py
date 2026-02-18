@@ -1,3 +1,14 @@
+# FIX: Set UTF-8 encoding for console output to support emojis (only if stdout exists)
+import io
+import sys
+try:
+    if sys.stdout is not None and hasattr(sys.stdout, 'buffer'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if sys.stderr is not None and hasattr(sys.stderr, 'buffer'):
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+except (AttributeError, TypeError):
+    pass  # Windowed mode (EXE) - stdout/stderr may not have buffer
+
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import json
@@ -8,7 +19,6 @@ from datetime import datetime
 import schedule
 import threading
 import time
-import sys
 import requests
 
 # Adaugă calea pentru PyInstaller bundle (sys._MEIPASS)
@@ -205,7 +215,7 @@ except ImportError as e:
 
 # Admin Panel & Action Logger
 try:
-    from admin_panel import ActionLogger, AdminPanel
+    from admin_panel import AdminPanel
     from admin_ui import open_admin_panel
     from admin_permissions import open_granular_permissions_panel, InstitutionPermissionManager
     from action_logger import ActionLogger as ActionLoggerNew
@@ -234,6 +244,16 @@ except Exception as e:
     PERMISSION_SYNC_AVAILABLE = False
     PermissionSyncManager = None
     print(f"⚠️ Permission sync manager error: {e}")
+
+# Multi-Device Sync Manager - sincronizează TOȚI datele din cloud pentru orice dispozitiv
+try:
+    from multi_device_sync_manager import MultiDeviceSyncManager
+    MULTI_DEVICE_SYNC_AVAILABLE = True
+    print("✓ Multi-device sync manager loaded")
+except Exception as e:
+    MULTI_DEVICE_SYNC_AVAILABLE = False
+    MultiDeviceSyncManager = None
+    print(f"⚠️ Multi-device sync manager error: {e}")
 
 # Real-Time Cloud Sync Manager - for syncing institution data in real-time
 try:
@@ -529,27 +549,54 @@ def supabase_upload(city, institution, json_data, file_path=None):
                     # Caută dacă angajatul deja există
                     existing = SUPABASE_EMPLOYEE_MANAGER.get_employee_by_name(institution_id, row.get("NUME IC", ""))
                     if existing:
-                        # Update
+                        # Update - IMPORTANT: Make sure punctaj is updated!
+                        print(f"   🔄 Updating employee: {row.get('NUME IC', 'Unknown')} - PUNCTAJ: {row.get('PUNCTAJ', 0)}")
                         SUPABASE_EMPLOYEE_MANAGER.update_employee(existing['id'], emp_data)
                     else:
                         # Adaugă nou
+                        print(f"   ➕ Adding new employee: {row.get('NUME IC', 'Unknown')} - PUNCTAJ: {row.get('PUNCTAJ', 0)}")
                         SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, emp_data)
                     synced += 1
                 except Exception as e:
                     print(f"   ⚠️  Error sync {row.get('NUME IC', 'Unknown')}: {e}")
+                    import traceback
+                    traceback.print_exc()
             
-            print(f"   ✅ Synced {synced}/{len(rows)} employees")
+            print(f"   ✅ Synced {synced}/{len(rows)} employees to Supabase")
         elif not SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
             print(f"   ⚠️  Cannot sync employees - MANAGER not available")
         
+        # 📊 DIRECT SYNC TO police_data TABLE - UPDATE INSTITUTION DATA WITH PUNCTAJ
+        # This ensures that the police_data table always has the latest employee data
+        if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
+            try:
+                print(f"   📊 Syncing institution data to police_data table...")
+                # Update the police_data table with the latest JSON data
+                result = SUPABASE_SYNC.sync_data(city, institution, json_data, DISCORD_AUTH)
+                if result:
+                    print(f"   ✅ police_data table updated with latest institution data")
+                else:
+                    print(f"   ⚠️  police_data table update returned False")
+            except Exception as e:
+                print(f"   ⚠️  Error syncing to police_data: {e}")
+        
         # Upload logurile din folderul logs/ (organized by city/institution)
+        # IMPORTANT: Logurile sunt criptate local, trebuie să le decriptez înainte upload
         try:
             import glob
             logs_uploaded = 0
             logs_dir = "logs"
             if os.path.exists(logs_dir):
-                # Find all institution log files (logs/{city}/{institution}.json)
-                institution_log_files = glob.glob(os.path.join(logs_dir, "*/*.json"))
+                # Import encryption module for reading encrypted logs
+                try:
+                    from json_encryptor import load_protected_json
+                    has_encryption = True
+                except ImportError:
+                    has_encryption = False
+                    print("   ⚠️  Encryption module not available - will try plain JSON")
+                
+                # Find all institution log files (logs/{city}/{institution}.enc)
+                institution_log_files = glob.glob(os.path.join(logs_dir, "*/*.enc"))
                 
                 for log_file in institution_log_files:
                     # Skip global summary file
@@ -557,12 +604,20 @@ def supabase_upload(city, institution, json_data, file_path=None):
                         continue
                     
                     try:
-                        with open(log_file, 'r', encoding='utf-8') as f:
-                            logs_array = json.load(f)
+                        # 🔓 DECRYPT THE LOG FILE
+                        if has_encryption:
+                            logs_array = load_protected_json(log_file, decrypt=True)
+                        else:
+                            # Fallback: try reading as plain JSON
+                            with open(log_file, 'r', encoding='utf-8') as f:
+                                data = json.load(f)
+                                logs_array = data if isinstance(data, list) else [data]
                         
                         # logs_array should be a list of log entries
                         if not isinstance(logs_array, list):
                             logs_array = [logs_array]
+                        
+                        print(f"   📤 Uploading {len(logs_array)} logs from {os.path.basename(log_file)}...")
                         
                         # Upload each log entry
                         for log_data in logs_array:
@@ -577,13 +632,15 @@ def supabase_upload(city, institution, json_data, file_path=None):
                             if response.status_code in [200, 201]:
                                 logs_uploaded += 1
                             else:
-                                print(f"   ⚠️  Failed to upload log: HTTP {response.status_code}")
+                                print(f"      ⚠️  Failed to upload log: HTTP {response.status_code}")
                         
                         # Delete file after successful upload of all logs
                         os.remove(log_file)
-                        print(f"   ✅ Uploaded {logs_uploaded} logs from {log_file}")
+                        print(f"      ✅ Uploaded {logs_uploaded} logs total")
                     except Exception as e:
-                        print(f"   ⚠️  Error with logs: {e}")
+                        print(f"   ⚠️  Error with logs from {log_file}: {e}")
+                        import traceback
+                        traceback.print_exc()
         except Exception as e:
             print(f"   ⚠️  Logs upload error: {e}")
         
@@ -592,7 +649,7 @@ def supabase_upload(city, institution, json_data, file_path=None):
         if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
             try:
                 print(f"   📡 Calling SUPABASE_SYNC.sync_data()...")
-                result = SUPABASE_SYNC.sync_data(city, institution, json_data)
+                result = SUPABASE_SYNC.sync_data(city, institution, json_data, DISCORD_AUTH)
                 if result:
                     print(f"   ✅ Institution data synced: {city}/{institution}")
                     return {"status": "success"}
@@ -695,7 +752,7 @@ def sync_all_local_cities_to_supabase():
                         inst_data = json.load(f)
                     
                     # Upload la police_data
-                    result = SUPABASE_SYNC.sync_data(city_dir_name, institution_name, inst_data)
+                    result = SUPABASE_SYNC.sync_data(city_dir_name, institution_name, inst_data, DISCORD_AUTH)
                     if result:
                         print(f"       ✅ Synced to police_data: {institution_name}")
                 except Exception as e:
@@ -1247,6 +1304,9 @@ def save_institution(city, institution, tree, update_timestamp=False, updated_it
         result = supabase_upload(city, institution, data, file_path)
         if result.get("status") == "success":
             print(f"✅ Auto-sync UPLOAD: {city}/{institution} → Supabase")
+            # 🔄 FORCE REFRESH - pull the updated data back from cloud to ensure police_data is updated
+            print(f"   🔄 Force-refreshing the active table after sync...")
+            root.after(100, refresh_active_institution_table)
         else:
             print(f"⚠️  Auto-sync UPLOAD failed: {city}/{institution} (will retry later)")
     except Exception as e:
@@ -1331,7 +1391,18 @@ def log_json_action(file_path, action, details=None):
         details (dict): Detalii suplimentare
     """
     try:
-        if not LOGGER_AVAILABLE or not LOGGER:
+        # Print debug info
+        print(f"\n{'='*60}")
+        print(f"🔍 DEBUG: log_json_action called")
+        print(f"   ACTION_LOGGER: {ACTION_LOGGER}")
+        print(f"   ACTION_LOGGER is None: {ACTION_LOGGER is None}")
+        print(f"   File: {file_path}")
+        print(f"   Action: {action}")
+        
+        # Use ACTION_LOGGER (which IS initialized) instead of LOGGER (which is None)
+        if not ACTION_LOGGER:
+            print(f"   ❌ ACTION_LOGGER is None - skipping log")
+            print(f"{'='*60}\n")
             return
         
         # Obține Discord ID și nume
@@ -1344,14 +1415,20 @@ def log_json_action(file_path, action, details=None):
             if DISCORD_AUTH.user_info.get("discriminator"):
                 discord_name = f"{discord_name}#{DISCORD_AUTH.user_info.get('discriminator')}"
         
+        print(f"   Discord: {discord_name} ({discord_id})")
+        
         # Path relativ
         rel_path = file_path
         if file_path.startswith(DATA_DIR):
             rel_path = os.path.relpath(file_path, DATA_DIR)
         
-        LOGGER.log_action(rel_path, discord_id, discord_name, action, details)
+        print(f"   Calling ACTION_LOGGER.log_action...")
+        ACTION_LOGGER.log_action(rel_path, discord_id, discord_name, action, details)
+        print(f"{'='*60}\n")
     except Exception as e:
         print(f"⚠️ Logging error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 # ================== DISCORD AUTHENTICATION FUNCTIONS ==================
@@ -1618,10 +1695,14 @@ def discord_login():
                             REALTIME_SYNC_MANAGER = RealTimeSyncManager(
                                 supabase_sync=SUPABASE_SYNC,
                                 data_dir=DATA_DIR,
-                                sync_interval=30  # Sync every 30 seconds
+                                sync_interval=1  # Sync every 1 second
                             )
+                            # 🔔 SET GLOBAL CALLBACK - auto-refresh UI after cloud sync
+                            # IMPORTANT: Using wrapper function to ensure thread-safe Tkinter calls
+                            REALTIME_SYNC_MANAGER.set_global_sync_callback(_refresh_active_table_from_sync)
                             REALTIME_SYNC_MANAGER.start()
                             print("✅ Real-time cloud sync manager initialized and started")
+                            print("   🔔 UI will auto-refresh every 30 seconds when cloud data changes")
                         except Exception as e:
                             print(f"⚠️ Failed to initialize real-time sync: {e}")
                     
@@ -1634,27 +1715,49 @@ def discord_login():
                         except Exception as e:
                             print(f"⚠️  WebSocket startup warning: {e}")
                     
-                    # ⭐ AUTOCORRECT: Download user permissions from Supabase for client
-                    print(f"\n📥 Descarcă permisiunile utilizatorului din cloud...")
-                    if USERS_PERMS_JSON_MANAGER:
+                    # 🌍 FULL MULTI-DEVICE SYNC: Sincronizează TOȚI datele din cloud pe orice dispozitiv
+                    print(f"\n{'='*80}")
+                    print(f"🌍 MULTI-DEVICE SYNC - Sincronizând TOȚI datele din cloud...")
+                    print(f"{'='*80}")
+                    
+                    if MULTI_DEVICE_SYNC_AVAILABLE and SUPABASE_SYNC:
                         try:
-                            success = USERS_PERMS_JSON_MANAGER.download_from_cloud()
-                            if success:
-                                status_label.config(text="✅ Permisiuni descărcate din cloud!", fg="#4CAF50")
-                                print("✅ Permisiunile utilizatorului au fost descărcate din Supabase")
+                            global MULTI_DEVICE_SYNC_MANAGER
+                            MULTI_DEVICE_SYNC_MANAGER = MultiDeviceSyncManager(
+                                supabase_sync=SUPABASE_SYNC,
+                                data_dir=DATA_DIR
+                            )
+                            
+                            # 🔄 Perform full sync
+                            sync_result = MULTI_DEVICE_SYNC_MANAGER.full_cloud_sync_on_startup()
+                            
+                            # 🎯 Analyze result
+                            if sync_result["status"] in ["success", "partial"]:
+                                print(f"✅ Multi-device sync completed!")
+                                print(f"   Cities synced: {sync_result['police_data'].get('count', 0)}")
+                                print(f"   Users synced: {sync_result['user_permissions'].get('count', 0)}")
+                                print(f"   Total time: {sync_result.get('total_time', 0):.2f}s")
                                 
-                                # ⭐ IMPORTANT: Reload cache after download
-                                if DISCORD_AUTH:
-                                    DISCORD_AUTH.reload_granular_permissions_from_json()
-                                    print("✅ Cache-ul de permisiuni a fost reîncărcat")
+                                # ⭐ Start background sync (every 5 minutes)
+                                try:
+                                    MULTI_DEVICE_SYNC_MANAGER.start_background_sync(interval=300)
+                                except Exception as e:
+                                    print(f"⚠️  Background sync start warning: {e}")
                             else:
-                                print("⚠️ Nu am putut descărca permisiunile din Supabase")
-                                status_label.config(text="⚠️ Permisiuni: parțial descărcate", fg="#FF9800")
+                                print(f"⚠️  Sync warning: {sync_result.get('message', 'Unknown')}")
+                                if sync_result.get('police_data', {}).get('error'):
+                                    print(f"   Error: {sync_result['police_data']['error'][:100]}")
+                        
                         except Exception as e:
-                            print(f"⚠️ Eroare la descarcarea permisiunilor: {e}")
-                            status_label.config(text="⚠️ Eroare permisiuni - va continua", fg="#FF9800")
-                    else:
-                        print("⚠️ Users Permissions Manager nu e disponibil")
+                            print(f"⚠️  Multi-device sync error: {e}")
+                            print(f"   Application will continue with local data")
+                            import traceback
+                            traceback.print_exc()
+                    
+                    # ⭐ IMPORTANT: Reload cache after download
+                    if DISCORD_AUTH:
+                        DISCORD_AUTH.reload_granular_permissions_from_json()
+                        print("✅ Cache-ul de permisiuni a fost reîncărcat")
                     
                     login_window.update()
                     
@@ -1713,7 +1816,7 @@ def discord_login():
                         sys.exit(1)
                     
                     return False
-                    
+            
             except Exception as e:
                 progress.stop()
                 status_label.config(text=f"❌ Eroare: {str(e)}", fg="#F44336")
@@ -1738,13 +1841,256 @@ def discord_login():
                     login_window.destroy()
                     root.quit()
                     sys.exit(1)
+        
+        # 🔧 FIXED: Use root.after() properly with Tkinter event loop
+        login_result = [False]
+        timeout_counter = [0]
+        
+        def do_login_iteration():
+            """Attempt login and schedule next check"""
+            nonlocal timeout_counter
+            timeout_counter[0] += 1
+            
+            # Timeout after 35 seconds (allow 30 sec for OAuth + buffer)
+            if timeout_counter[0] > 35:
+                try:
+                    progress.stop()
+                except:
+                    pass
+                status_label.config(
+                    text="❌ Autentificare expirată (30 secunde)",
+                    fg="#F44336"
+                )
+                login_window.update()
                 
-                return False
+                result = messagebox.askyesno(
+                    "⏱️ Timeout",
+                    "Autentificarea a expirat (30 secunde).\n\n"
+                    "Asigură-te că ai deschis browserul și ai finalizat login-ul Discord.\n\n"
+                    "Vrei să încerci din nou?"
+                )
+                
+                if result:
+                    # Reset and retry
+                    timeout_counter[0] = 0
+                    status_label.config(
+                        text="⏳ Se pregătește serverul de autentificare...",
+                        fg="#666"
+                    )
+                    progress.start()
+                    login_window.update()
+                    
+                    # Restart login
+                    try:
+                        if DISCORD_AUTH.start_oauth_server():
+                            login_result[0] = True
+                            progress.stop()
+                            status_label.config(
+                                text="✅ Autentificare reușită!",
+                                fg="#4CAF50"
+                            )
+                            login_window.update()
+                            
+                            # Initialize all managers
+                            _initialize_discord_managers()
+                            
+                            login_window.after(1500, login_window.destroy)
+                            return
+                    except Exception as e:
+                        messagebox.showerror("Eroare", f"Eroare: {str(e)[:200]}")
+                else:
+                    # User cancelled
+                    login_window.destroy()
+                    return
+            
+            # Schedule next check
+            login_window.after(100, do_login_iteration)
         
-        # Start automatic login immediately
-        root.after(100, do_login)
+        def _initialize_discord_managers():
+            """Initialize permission and sync managers after successful login"""
+            global PERMISSION_SYNC_MANAGER, REALTIME_SYNC_MANAGER
+            
+            username = DISCORD_AUTH.user_info.get('username', 'User')
+            user_id = DISCORD_AUTH.user_info.get('id', '')
+            user_role = DISCORD_AUTH.get_user_role()
+            
+            print(f"✅ Discord authenticated as: {username} (ID: {user_id})")
+            print(f"   📊 Role: {user_role.upper()}")
+            print(f"   👑 Is Superuser: {DISCORD_AUTH._is_superuser}")
+            print(f"   🛡️  Is Admin: {DISCORD_AUTH._is_admin}")
+            
+            # Initialize permission sync manager
+            if PERMISSION_SYNC_AVAILABLE and SUPABASE_SYNC:
+                try:
+                    PERMISSION_SYNC_MANAGER = PermissionSyncManager(
+                        supabase_sync=SUPABASE_SYNC,
+                        discord_auth=DISCORD_AUTH,
+                        users_perms_json_manager=USERS_PERMS_JSON_MANAGER,
+                        sync_interval=5
+                    )
+                    DISCORD_AUTH.set_permission_sync_manager(PERMISSION_SYNC_MANAGER)
+                    PERMISSION_SYNC_MANAGER.start()
+                    print("✅ Permission sync manager initialized and started")
+                except Exception as e:
+                    print(f"⚠️ Failed to initialize permission sync: {e}")
+            
+            # Initialize real-time sync manager
+            if REALTIME_SYNC_AVAILABLE and SUPABASE_SYNC:
+                try:
+                    REALTIME_SYNC_MANAGER = RealTimeSyncManager(
+                        supabase_sync=SUPABASE_SYNC,
+                        data_dir=DATA_DIR,
+                        sync_interval=1
+                    )
+                    # 🔔 SET GLOBAL CALLBACK - auto-refresh UI after cloud sync
+                    REALTIME_SYNC_MANAGER.set_global_sync_callback(_refresh_active_table_from_sync)
+                    REALTIME_SYNC_MANAGER.start()
+                    print("✅ Real-time cloud sync manager initialized and started")
+                    print("   🔔 UI will auto-refresh every 30 seconds when cloud data changes")
+                except Exception as e:
+                    print(f"⚠️ Failed to initialize real-time sync: {e}")
+            
+            # Start WebSocket real-time sync
+            if SUPABASE_SYNC and hasattr(SUPABASE_SYNC, 'start_realtime_sync'):
+                try:
+                    SUPABASE_SYNC.start_realtime_sync()
+                    print("🔌 WebSocket real-time sync activated")
+                except Exception as e:
+                    print(f"⚠️  WebSocket startup warning: {e}")
+            
+            # 🌍 FULL MULTI-DEVICE SYNC: Sincronizează TOȚI datele din cloud pe orice dispozitiv
+            print(f"\n{'='*80}")
+            print(f"🌍 MULTI-DEVICE SYNC - Sincronizând TOȚI datele din cloud...")
+            print(f"{'='*80}")
+            
+            if MULTI_DEVICE_SYNC_AVAILABLE and SUPABASE_SYNC:
+                try:
+                    global MULTI_DEVICE_SYNC_MANAGER
+                    MULTI_DEVICE_SYNC_MANAGER = MultiDeviceSyncManager(
+                        supabase_sync=SUPABASE_SYNC,
+                        data_dir=DATA_DIR
+                    )
+                    
+                    # 🔄 Perform full sync
+                    sync_result = MULTI_DEVICE_SYNC_MANAGER.full_cloud_sync_on_startup()
+                    
+                    # 🎯 Analyze result
+                    if sync_result["status"] in ["success", "partial"]:
+                        print(f"✅ Multi-device sync completed!")
+                        print(f"   Cities synced: {sync_result['police_data'].get('count', 0)}")
+                        print(f"   Users synced: {sync_result['user_permissions'].get('count', 0)}")
+                        
+                        # ⭐ Start background sync (every 5 minutes)
+                        try:
+                            MULTI_DEVICE_SYNC_MANAGER.start_background_sync(interval=300)
+                        except Exception as e:
+                            print(f"⚠️  Background sync start warning: {e}")
+                    else:
+                        print(f"⚠️  Sync warning: {sync_result.get('message', 'Unknown')}")
+                
+                except Exception as e:
+                    print(f"⚠️  Multi-device sync error: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # Download user permissions
+            print(f"\n📥 Descarcă permisiunile utilizatorului din cloud...")
+            if USERS_PERMS_JSON_MANAGER:
+                try:
+                    success = USERS_PERMS_JSON_MANAGER.download_from_cloud()
+                    if success:
+                        print("✅ Permisiunile utilizatorului au fost descărcate din Supabase")
+                        if DISCORD_AUTH:
+                            DISCORD_AUTH.reload_granular_permissions_from_json()
+                            print("✅ Cache-ul de permisiuni a fost reîncărcat")
+                    else:
+                        print("⚠️ Nu am putut descărca permisiunile din Supabase")
+                except Exception as e:
+                    print(f"⚠️ Eroare la descarcarea permisiunilor: {e}")
         
-        return True
+        # Start the login process via OAuth
+        try:
+            status_label.config(text="📱 Se deschide browserul de autentificare...")
+            login_window.update()
+            
+            # Start OAuth in a thread to avoid blocking
+            import threading
+            def oauth_thread():
+                try:
+                    if DISCORD_AUTH.start_oauth_server():
+                        login_result[0] = True
+                except:
+                    login_result[0] = False
+            
+            oauth_t = threading.Thread(target=oauth_thread, daemon=True)
+            oauth_t.start()
+            
+            # Check periodically if login completed
+            def check_oauth_completion():
+                if login_result[0]:
+                    # Login successful!
+                    try:
+                        progress.stop()
+                    except:
+                        pass
+                    status_label.config(
+                        text="✅ Autentificare reușită!",
+                        fg="#4CAF50"
+                    )
+                    login_window.update()
+                    _initialize_discord_managers()
+                    login_window.after(1500, login_window.destroy)
+                    return True  # Return to stop checking
+                elif timeout_counter[0] > 30:  # 30 second timeout
+                    try:
+                        progress.stop()
+                    except:
+                        pass
+                    status_label.config(
+                        text="❌ Autentificare expirată (30 secunde)",
+                        fg="#F44336"
+                    )
+                    login_window.update()
+                    
+                    if messagebox.askyesno(
+                        "⏱️ Timeout",
+                        "Autentificarea a expirat.\n\nVrei să încerci din nou?"
+                    ):
+                        # Retry
+                        timeout_counter[0] = 0
+                        login_result[0] = False
+                        status_label.config(text="⏳ Se pregătește...", fg="#666")
+                        progress.start()
+                        login_window.update()
+                        oauth_t2 = threading.Thread(target=oauth_thread, daemon=True)
+                        oauth_t2.start()
+                        login_window.after(1000, check_oauth_completion)
+                    else:
+                        login_window.destroy()
+                    return True
+                else:
+                    timeout_counter[0] += 1
+                    login_window.after(1000, check_oauth_completion)
+                    return False
+            
+            check_oauth_completion()
+            
+        except Exception as e:
+            print(f"❌ Discord auth error (threading): {e}")
+            import traceback
+            traceback.print_exc()
+            login_window.destroy()
+            return False
+        
+        # Keep window responsive while waiting
+        try:
+            while login_window.winfo_exists():
+                login_window.update()
+                time.sleep(0.1)
+        except:
+            pass
+        
+        return login_result[0]
         
     except Exception as e:
         print(f"❌ Discord auth error: {e}")
@@ -3321,9 +3667,10 @@ def show_weekly_report():
                             
                             # Extrage din filename: Institution_YYYY-MM-DD_HH-MM-SS.json
                             filename_without_ext = json_file.replace('.json', '')
+                            # Split from right to get: institution, date, time
                             parts = filename_without_ext.rsplit('_', 2)  # Split din dreapta
                             
-                            if len(parts) >= 3:
+                            if len(parts) == 3:
                                 institution = parts[0]
                                 date_str = parts[1]  # YYYY-MM-DD
                                 time_str = parts[2]  # HH-MM-SS
@@ -3340,7 +3687,10 @@ def show_weekly_report():
                                     'employee_count': data.get('employee_count', 0)
                                 })
                                 
-                                print(f"      ✅ {institution} ({date_str}) - {data.get('employee_count', 0)} employees")
+                                employee_count = data.get('employee_count', 0)
+                                print(f"      ✅ {institution} ({date_str}) - {employee_count} angajați")
+                            else:
+                                print(f"      ⚠️ Nu pot parsa filename {json_file}: parts={parts}")
                     except Exception as e:
                         print(f"      ⚠️ Eroare parsare {json_file}: {e}")
         except FileNotFoundError:
@@ -3353,28 +3703,49 @@ def show_weekly_report():
         
         print(f"\n✅ Găsite {len(archive_files)} rapoarte în arhiva")
         
+        # Summary by employee count
+        emp_summary = {}
+        for item in archive_files:
+            key = f"{item['employee_count']} angajați"
+            emp_summary[key] = emp_summary.get(key, 0) + 1
+        
+        summary_text = " | ".join([f"{count}: {num}" for count, num in sorted(emp_summary.items())])
+        print(f"📊 Summary: {summary_text}")
+        
         # Creează fereastră pentru afișare raport
         report_window = tk.Toplevel(root)
         report_window.title(f"📋 Rapoarte din Arhiva ({len(archive_files)} fișiere)")
-        report_window.geometry("1000x650")
+        report_window.geometry("1200x700")
         
-        # Header
+        # Header with summary
+        header_frame = tk.Frame(report_window, bg="#e3f2fd")
+        header_frame.pack(fill=tk.X, padx=10, pady=10)
+        
         ttk.Label(
-            report_window,
+            header_frame,
             text=f"📋 Rapoarte din Arhiva - {len(archive_files)} fișiere",
-            font=("Segoe UI", 12, "bold")
-        ).pack(padx=10, pady=10)
+            font=("Segoe UI", 13, "bold"),
+            background="#e3f2fd"
+        ).pack(anchor="w", padx=10, pady=5)
+        
+        ttk.Label(
+            header_frame,
+            text=f"📊 {summary_text}",
+            font=("Segoe UI", 10),
+            background="#e3f2fd",
+            foreground="#1976d2"
+        ).pack(anchor="w", padx=10, pady=2)
         
         # Treeview cu fișierele găsite
         columns = ("City", "Institution", "Date", "Time", "Employees", "ArchivedAt")
-        tree = ttk.Treeview(report_window, columns=columns, height=15)
+        tree = ttk.Treeview(report_window, columns=columns, height=18)
         tree.column("#0", width=0, stretch=tk.NO)
-        tree.column("City", anchor=tk.W, width=120)
-        tree.column("Institution", anchor=tk.W, width=150)
-        tree.column("Date", anchor=tk.CENTER, width=120)
-        tree.column("Time", anchor=tk.CENTER, width=110)
-        tree.column("Employees", anchor=tk.CENTER, width=100)
-        tree.column("ArchivedAt", anchor=tk.W, width=150)
+        tree.column("City", anchor=tk.W, width=110)
+        tree.column("Institution", anchor=tk.W, width=140)
+        tree.column("Date", anchor=tk.CENTER, width=110)
+        tree.column("Time", anchor=tk.CENTER, width=100)
+        tree.column("Employees", anchor=tk.CENTER, width=90)
+        tree.column("ArchivedAt", anchor=tk.W, width=140)
         
         tree.heading("#0", text="", anchor=tk.W)
         tree.heading("City", text="🏙️ Oraș", anchor=tk.W)
@@ -3386,17 +3757,30 @@ def show_weekly_report():
         
         tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Populează treeview
-        for item in sorted(archive_files, key=lambda x: (x['date'], x['time']), reverse=True):
+        # Populează treeview - sorted by date/time descending (most recent first)
+        sorted_files = sorted(
+            archive_files, 
+            key=lambda x: (x['date'], x['time']), 
+            reverse=True  # Most recent FIRST
+        )
+        
+        for i, item in enumerate(sorted_files):
             values = (
                 item['city'],
                 item['institution'],
                 item['date'],
                 item['time'],
-                str(item['employee_count']),
+                f"👥 {item['employee_count']}",  # Highlight employee count
                 item['archived_at']
             )
-            tree.insert("", tk.END, values=values)
+            tree_id = tree.insert("", tk.END, values=values)
+            
+            # Highlight rows with 9 employees (the latest additions)
+            if item['employee_count'] >= 9:
+                tree.item(tree_id, tags=('recent_9',))
+        
+        # Add tag styling for 9-employee rows
+        tree.tag_configure('recent_9', background='#c8e6c9', foreground='#1b5e20')
         
         # Buttons frame
         btn_frame = ttk.Frame(report_window)
@@ -3414,25 +3798,29 @@ def show_weekly_report():
             city = values[0]
             institution = values[1]
             date_str = values[2]
+            time_str = values[3]  # FIX: Include time to match correct report
             
-            # Găsește fișierul în archive_files
+            # Găsește fișierul în archive_files - trebuie să se potrivească city, institution, date ȘI time
             report_data = None
             for archive in archive_files:
-                if archive['city'] == city and archive['institution'] == institution and archive['date'] == date_str:
+                if (archive['city'] == city and 
+                    archive['institution'] == institution and 
+                    archive['date'] == date_str and
+                    archive['time'] == time_str):  # FIX: Added time matching
                     report_data = archive['data']
                     break
             
             if not report_data:
-                messagebox.showerror("Eroare", "Nu s-au găsit datele raportului!")
+                messagebox.showerror("Eroare", f"Nu s-au găsit datele raportului!\n\nCautat: {city}/{institution} @ {date_str} {time_str}")
                 return
             
             # Creează fereastră detalii
             details_window = tk.Toplevel(report_window)
-            details_window.title(f"👥 Angajații - {institution} ({date_str})")
+            details_window.title(f"👥 Angajații - {institution} ({date_str} {time_str})")
             details_window.geometry("1200x600")
             
             # Header
-            header_text = f"📋 {city} - {institution}\n📅 Data: {date_str} | 👥 Angajați: {report_data.get('employee_count', 0)}"
+            header_text = f"📋 {city} - {institution}\n📅 Data: {date_str} ⏰ Ora: {time_str} | 👥 Angajați: {report_data.get('employee_count', 0)}"
             ttk.Label(
                 details_window,
                 text=header_text,
@@ -4325,7 +4713,7 @@ def add_member(tree, city, institution):
             try:
                 inst_data = load_institution(city, institution)
                 if inst_data:
-                    result = SUPABASE_SYNC.sync_data(city, institution, inst_data)
+                    result = SUPABASE_SYNC.sync_data(city, institution, inst_data, DISCORD_AUTH)
                     if result:
                         print(f"✅ Institution data synced to Supabase: {city}/{institution}")
                     else:
@@ -4958,6 +5346,126 @@ def build_structure_for_view():
     
     return structure
 
+
+# ================== AUTO-REFRESH ACTIVE INSTITUTION TABLE ==================
+def refresh_active_institution_table():
+    """
+    🔄 AUTO-REFRESH ACTIVE TABLE - Reîncarcă tabelul instituției curente după sincronizare cloud
+    
+    Aceasta funcție este apelată de RealTimeSyncManager după fiecare descărcare din cloud
+    pentru a actualiza automat interfața cu noile date
+    
+    NOTE: Aceasta funcție TREBUIE sa fie apelata prin root.after() din Tkinter main thread,
+          deoarece RealTimeSyncManager ruleaza in background thread
+    """
+    try:
+        print("\n🔄 AUTO-REFRESH: Starting active institution table refresh...")
+        
+        # Get the currently selected city tab
+        current_city_tab = city_notebook.select()
+        if not current_city_tab:
+            print("   ℹ️ No city tab selected - skipping refresh")
+            return
+        
+        # Get city name from tab text
+        current_city = None
+        for tab_id in city_notebook.tabs():
+            if tab_id == current_city_tab:
+                current_city = city_notebook.tab(tab_id, "text")
+                break
+        
+        if not current_city:
+            print("   ⚠️ Could not determine current city name")
+            return
+        
+        print(f"   📍 Active city: {current_city}")
+        
+        # Get the institution notebook for this city
+        if current_city not in tabs:
+            print(f"   ⚠️ City '{current_city}' not found in tabs")
+            return
+        
+        inst_nb = tabs[current_city].get("nb")
+        if not inst_nb:
+            print(f"   ⚠️ No institution notebook for {current_city}")
+            return
+        
+        # Get currently selected institution tab
+        current_inst_tab = inst_nb.select()
+        if not current_inst_tab:
+            print("   ℹ️ No institution tab selected in this city - skipping refresh")
+            return
+        
+        # Get institution name from tab text
+        current_institution = None
+        for tab_id in inst_nb.tabs():
+            if tab_id == current_inst_tab:
+                current_institution = inst_nb.tab(tab_id, "text")
+                break
+        
+        if not current_institution:
+            print("   ⚠️ Could not determine current institution name")
+            return
+        
+        print(f"   🏢 Active institution: {current_institution}")
+        
+        # Get the treeview for this institution
+        if current_institution not in tabs[current_city]["trees"]:
+            print(f"   ⚠️ Tree not found for {current_institution}")
+            return
+        
+        tree = tabs[current_city]["trees"][current_institution]
+        
+        # 📤 RELOAD DATA - Load fresh data from local JSON (which was just synced from cloud)
+        print(f"   📥 Loading fresh data from cloud for {current_city}/{current_institution}...")
+        inst_data = load_institution(current_city, current_institution)
+        columns = tree.columns
+        rows = inst_data.get("rows", [])
+        
+        print(f"   ✅ Loaded {len(rows)} rows for {current_institution}")
+        
+        # ♻️ REFRESH TREEVIEW - Clear and repopulate with new data
+        print(f"   🔄 Refreshing treeview with new data...")
+        tree.delete(*tree.get_children())
+        
+        for row in rows:
+            if isinstance(row, dict):
+                values = tuple(row.get(col, "") for col in columns)
+            else:
+                values = tuple(row) if isinstance(row, (list, tuple)) else (row,)
+            tree.insert("", tk.END, values=values)
+        
+        # ⏱️ UPDATE INFO LABEL
+        update_info_label(current_city, current_institution)
+        
+        # 📊 RE-SORT BY PUNCTAJ
+        sort_tree_by_punctaj(tree)
+        
+        print(f"✅ AUTO-REFRESH COMPLETE: {current_city}/{current_institution} refreshed with cloud data!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ AUTO-REFRESH ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def _refresh_active_table_from_sync():
+    """
+    🔄 WRAPPER for thread-safe UI refresh from sync manager
+    
+    Apelata de RealTimeSyncManager din background thread.
+    Trebuie sa inregistreze cu root.after() pentru a rula in Tkinter main thread
+    """
+    try:
+        # Schedule refresh in main Tkinter thread
+        root.after(0, refresh_active_institution_table)
+    except Exception as e:
+        print(f"❌ Error scheduling refresh: {e}")
+
+
+
 # ================== AUTO-ÎNCĂRCARE ORAȘE / INSTITUȚII ==================
 def load_existing_tables():
     """Încarcă automat toate orașele și instituțiile cu noua vizualizare organizată"""
@@ -5401,6 +5909,132 @@ def force_cloud_sync_button():
         )
 
 # ================== SINCRONIZARE LA PORNIRE ==================
+def startup_upload_logs():
+    """
+    🔓 AUTO-UPLOAD ENCRYPTED LOGS ON STARTUP
+    Decriptează logurile locale (.enc) și le uploadează pe Supabase audit_logs
+    """
+    print("\n[STARTUP] 📤 Uploading encrypted logs to Supabase...")
+    
+    if not SUPABASE_SYNC or not SUPABASE_SYNC.enabled:
+        print("   ⚠️  Supabase sync disabled - skipping log upload")
+        return
+    
+    try:
+        import glob
+        logs_uploaded = 0
+        logs_dir = "logs"
+        
+        if not os.path.exists(logs_dir):
+            print("   ℹ️  No logs folder found - skipping")
+            return
+        
+        # Import encryption module
+        try:
+            from json_encryptor import load_protected_json
+            has_encryption = True
+        except ImportError:
+            has_encryption = False
+            print("   ⚠️  Encryption module not available")
+            return
+        
+        # Find all encrypted log files
+        enc_files = glob.glob(os.path.join(logs_dir, "*/*.enc"))
+        enc_files = [f for f in enc_files if "SUMMARY" not in f]  # Skip summary files
+        
+        if not enc_files:
+            print("   ℹ️  No encrypted log files to upload")
+            return
+        
+        print(f"   🔓 Found {len(enc_files)} encrypted log files - decrypting and uploading...")
+        
+        # Upload each file
+        for log_file in enc_files:
+            try:
+                logs_array = load_protected_json(log_file, decrypt=True)
+                
+                if not isinstance(logs_array, list):
+                    logs_array = [logs_array]
+                
+                # Upload each log entry
+                for log_entry in logs_array:
+                    try:
+                        # Ensure timestamp exists
+                        if 'timestamp' not in log_entry:
+                            log_entry['timestamp'] = datetime.now().isoformat()
+                        
+                        url = f"{SUPABASE_SYNC.url}/rest/v1/{SUPABASE_SYNC.table_logs}"
+                        headers = {
+                            'apikey': SUPABASE_SYNC.key,
+                            'Authorization': f'Bearer {SUPABASE_SYNC.key}',
+                            'Content-Type': 'application/json'
+                        }
+                        response = requests.post(url, json=log_entry, headers=headers, timeout=5)
+                        
+                        if response.status_code in [200, 201]:
+                            logs_uploaded += 1
+                    except Exception as e:
+                        print(f"      ⚠️  Failed to upload log: {e}")
+                
+                # Delete file after successful upload
+                try:
+                    os.remove(log_file)
+                except:
+                    pass
+                    
+            except Exception as e:
+                print(f"   ⚠️  Error processing {os.path.basename(log_file)}: {e}")
+        
+        if logs_uploaded > 0:
+            print(f"   ✅ Uploaded {logs_uploaded} log entries to audit_logs")
+        else:
+            print(f"   ℹ️  No new logs to upload")
+    
+    except Exception as e:
+        print(f"   ⚠️  Error during log upload: {e}")
+
+
+def startup_verify_logging():
+    """
+    Verifică că sistemul de logging funcționează corect la startup
+    """
+    print("\n[STARTUP] 🔍 Verifying logging system...")
+    
+    if not ACTION_LOGGER:
+        print("   ❌ ACTION_LOGGER is NOT initialized!")
+        print("      → Logging will NOT work in this session")
+        return False
+    
+    print("   ✅ ACTION_LOGGER is initialized")
+    print(f"      → Table: audit_logs")
+    print(f"      → Auto-logging: ENABLED")
+    print("      → All user actions will be logged to Supabase")
+    
+    # Test with a simple action
+    if ACTION_LOGGER and DISCORD_AUTH:
+        try:
+            discord_id = DISCORD_AUTH.get_discord_id()
+            discord_username = DISCORD_AUTH.user_info.get('username', discord_id) if DISCORD_AUTH.user_info else discord_id
+            
+            # Send test log
+            test_result = ACTION_LOGGER.log_action(
+                file_path="STARTUP_TEST",
+                discord_id=discord_id,
+                discord_username=discord_username,
+                action_type="startup_test",
+                details="Logging system verification"
+            )
+            
+            if test_result:
+                print("   ✅ Test log uploaded to Supabase successfully!")
+            else:
+                print("   ⚠️  Test log upload returned False")
+        except Exception as e:
+            print(f"   ⚠️  Error sending test log: {e}")
+    
+    return True
+
+
 def startup_sync():
     """Sincronizează datele din cloud la pornirea aplicației"""
     if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
@@ -5643,6 +6277,12 @@ check_and_create_supabase_tables()
 
 # Rulează sincronizarea la pornire
 startup_sync()
+
+# 📤 AUTO-UPLOAD ENCRYPTED LOGS ON STARTUP
+startup_upload_logs()
+
+# 🔍 VERIFY LOGGING SYSTEM
+startup_verify_logging()
 
 # Initialize cloud sync manager with polling (1-second interval)
 initialize_cloud_sync()

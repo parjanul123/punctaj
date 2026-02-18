@@ -5,7 +5,9 @@ Insert test logs into Supabase table 19922 (action_log)
 to demonstrate the logging system
 """
 import sys
-sys.path.insert(0, 'd:\\punctaj')
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
 import requests
 import json

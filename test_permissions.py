@@ -5,8 +5,9 @@ import sys
 import json
 import os
 
-# Add project dir to path
-sys.path.insert(0, 'd:\\punctaj')
+# Add project dir to path - dynamic (works on any drive)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
 # Test Discord Auth role-based permissions
 from discord_auth import DiscordAuth

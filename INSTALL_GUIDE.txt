@@ -1,0 +1,63 @@
+# Punctaj Application - Installation Guide
+
+## Quick Start
+
+### System Requirements
+- Windows 7 or newer (32-bit or 64-bit)
+- No additional software required
+- Internet connection (for cloud sync features)
+
+### Installation Steps
+
+1. **Download** the file: `Punctaj_App_Distribution.zip`
+
+2. **Extract** the ZIP file:
+   - Right-click on the ZIP
+   - Select "Extract All"
+   - Choose destination folder (e.g., `C:\Program Files\Punctaj`)
+
+3. **Run the Application**:
+   - Double-click `Punctaj.exe`
+   - Application will start immediately
+
+### Features
+- Complete employee timekeeping management
+- Multi-device synchronization
+- Cloud backup with Supabase
+- Admin dashboard with security controls
+- Portable - runs from any location
+- No installation needed
+
+### First Time Setup
+- Create admin account when first launched
+- Configure server settings if needed
+- All data is stored locally + optional cloud sync
+
+### File Size
+- Download: 19.44 MB
+- Extracted: ~35 MB
+- Data storage: Depends on records (typically 1-5 MB)
+
+### Troubleshooting
+
+**Application won't start:**
+- Make sure you extracted all files
+- Try running as Administrator
+- Check Windows antivirus isn't blocking
+
+**Sync issues:**
+- Check internet connection
+- Verify cloud credentials in settings
+- Contact support if problems persist
+
+### Support
+For issues or questions, contact the development team.
+
+### Version Info
+- Version: 2.0+
+- Release: February 2026
+- Architecture: Windows x64
+
+---
+
+**Ready to use! Just extract and run Punctaj.exe**

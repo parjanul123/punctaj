@@ -11,7 +11,8 @@ print("\n" + "="*70)
 print("  PUNCTAJ MANAGER - SETUP INSTALLER")
 print("="*70 + "\n")
 
-project_root = Path("d:/punctaj")
+# Dynamic path - works on any drive
+project_root = Path(os.path.dirname(os.path.abspath(__file__)))
 installer_dir = project_root / "installer_output"
 
 # Clean and create

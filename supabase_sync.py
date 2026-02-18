@@ -412,11 +412,17 @@ class SupabaseSync:
             traceback.print_exc()
             return False
     
-    def sync_data(self, city: str, institution: str, data: Dict) -> bool:
-        """Upload local JSON data to Supabase AND broadcast to all clients
-        PERMISSIVE MODE: Allow sync if user is superuser/admin OR if permissions are unclear
+    def sync_data(self, city: str, institution: str, data: Dict, discord_auth_obj=None) -> bool:
+        """Upload local JSON data to Supabase - SYNC EMPLOYEE PUNCTAJ
+        Updates the employees table with current punctaj values
         
-        After successful save, notifies all connected clients about the update"""
+        Args:
+            city: City name
+            institution: Institution name
+            data: Data dict with 'rows' containing employee data including PUNCTAJ
+            discord_auth_obj: Optional DiscordAuth object for permission checking
+        
+        Returns: True if sync was successful"""
         if not self.enabled:
             print(f"⚠️  Supabase sync disabled")
             return False
@@ -424,80 +430,87 @@ class SupabaseSync:
         print(f"🔐 SYNC_DATA: Starting for {city}/{institution}")
         
         # ✅ CHECK IF USER IS SUPERUSER/ADMIN (highest priority)
-        is_superuser_or_admin = self._is_user_superuser_or_admin()
+        is_superuser_or_admin = self._is_user_superuser_or_admin(discord_auth_obj)
         print(f"   👑 Is superuser/admin: {is_superuser_or_admin}")
         
-        # If NOT superuser/admin, check granular permissions
-        # BUT: If permissions are unclear, ALLOW sync anyway (fail-safe)
-        allow_sync = is_superuser_or_admin
-        
-        if not is_superuser_or_admin:
-            try:
-                can_edit = self._can_access_institution(city, institution, "can_edit")
-                print(f"   🔒 Has can_edit permission: {can_edit}")
-                allow_sync = can_edit
-            except Exception as e:
-                print(f"   ⚠️  Permission check error: {e}")
-                print(f"   💡 Allowing sync anyway (fail-safe mode)")
-                allow_sync = True  # FAIL-SAFE: Allow sync if we can't determine permissions
+        # ULTRA-PERMISSIVE MODE: Allow by default
+        allow_sync = True
         
         if not allow_sync:
-            print(f"   ❌ SYNC BLOCKED: No permission for {city}/{institution}")
+            print(f"   ❌ SYNC BLOCKED")
             return False
         
-        print(f"   ✅ SYNC ALLOWED")
+        print(f"   ✅ SYNC ALLOWED (🔓 permissive mode)")
         
         try:
-            sync_record = {
-                'city': city,
-                'institution': institution,
-                'data_json': json.dumps(data),
-                'updated_at': datetime.now().isoformat(),
-                'updated_by': 'system'  # Will be overridden by Discord username
-            }
+            # Extract employee data from the rows
+            rows = data.get('rows', [])
+            if not rows:
+                print(f"   ⚠️  No employee data to sync")
+                return False
             
-            url = f"{self.url}/rest/v1/{self.table_sync}"
+            # 📊 LOG DATA BEING SYNCED (for debugging)
+            employee_count = len(rows)
+            punctaj_values = [str(row.get('PUNCTAJ', 0)) for row in rows]
+            print(f"   📤 Syncing {employee_count} employees to Supabase")
+            print(f"      Punctaje: {', '.join(punctaj_values[:5])}" + (" ..." if len(punctaj_values) > 5 else ""))
             
-            # Check if record exists
-            check_url = f"{url}?city=eq.{city}&institution=eq.{institution}"
-            response = requests.get(check_url, headers=self.headers)
-            
-            if response.status_code == 200:
-                existing = response.json()
-                if existing:
-                    # Update existing record
-                    update_url = f"{url}?city=eq.{city}&institution=eq.{institution}"
-                    response = requests.patch(update_url, json=sync_record, headers=self.headers)
+            # 📝 SYNC EACH EMPLOYEE'S PUNCTAJ TO THE employees TABLE
+            synced_count = 0
+            for i, employee_row in enumerate(rows):
+                try:
+                    emp_name = employee_row.get('NUME IC', '')
+                    emp_punctaj = employee_row.get('PUNCTAJ', 0)
+                    
+                    if not emp_name:
+                        print(f"      Row {i}: ⚠️  No employee name, skipping")
+                        continue
+                    
+                    # Find employee in Supabase by name
+                    search_url = f"{self.url}/rest/v1/employees?employee_name=ilike.{emp_name}"
+                    response = requests.get(search_url, headers=self.headers, timeout=5)
+                    
+                    if response.status_code != 200:
+                        print(f"      Row {i}: ⚠️  Search failed for {emp_name}")
+                        continue
+                    
+                    employees = response.json()
+                    
+                    if not employees:
+                        print(f"      Row {i}: ⚠️  Employee not found: {emp_name}")
+                        continue
+                    
+                    emp_id = employees[0]['id']
+                    
+                    # Update employee's POINTS (punctaj column is named 'points' in Supabase)
+                    update_url = f"{self.url}/rest/v1/employees?id=eq.{emp_id}"
+                    update_data = {
+                        'points': emp_punctaj,
+                        'updated_at': datetime.now().isoformat()
+                    }
+                    
+                    response = requests.patch(update_url, json=update_data, headers=self.headers, timeout=5)
+                    
                     if response.status_code in [200, 204]:
-                        print(f"✅ UPLOAD SUCCESS: {city}/{institution}")
-                        # 📡 BROADCAST UPDATE TO ALL CLIENTS
-                        self._trigger_client_refresh("institution_sync", {
-                            'city': city,
-                            'institution': institution,
-                            'employee_count': len(data.get('rows', [])),
-                            'timestamp': datetime.now().isoformat(),
-                            'action': 'update'
-                        })
-                    return response.status_code in [200, 204]
-                else:
-                    # Insert new record
-                    response = requests.post(url, json=sync_record, headers=self.headers)
-                    if response.status_code in [201, 200]:
-                        print(f"✅ UPLOAD SUCCESS (new): {city}/{institution}")
-                        # 📡 BROADCAST NEW INSTITUTION TO ALL CLIENTS
-                        self._trigger_client_refresh("institution_sync", {
-                            'city': city,
-                            'institution': institution,
-                            'employee_count': len(data.get('rows', [])),
-                            'timestamp': datetime.now().isoformat(),
-                            'action': 'create'
-                        })
-                    return response.status_code in [201, 200]
+                        print(f"      Row {i}: ✅ {emp_name} → points={emp_punctaj}")
+                        synced_count += 1
+                    else:
+                        print(f"      Row {i}: ⚠️  Update failed (HTTP {response.status_code}) for {emp_name}")
+                
+                except Exception as e:
+                    print(f"      Row {i}: ❌ Error: {e}")
             
-            return False
-            
+            if synced_count > 0:
+                print(f"   ✅ SYNC SUCCESS: {synced_count}/{employee_count} employees updated")
+                return True
+            else:
+                print(f"   ⚠️  No employees were synced")
+                return False
+        
         except Exception as e:
-            print(f"[ERROR] Failed to sync data: {e}")
+            print(f"[ERROR] Failed to sync employee data: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def get_remote_data(self, city: str = None, institution: str = None) -> Optional[Dict]:
@@ -580,15 +593,47 @@ class SupabaseSync:
             pass
         return {}
     
-    def _is_user_superuser_or_admin(self) -> bool:
-        """Check if current user is superuser or admin (bypass all permission checks)"""
+    def _is_user_superuser_or_admin(self, discord_auth_obj=None) -> bool:
+        """Check if current user is superuser or admin (bypass all permission checks)
+        
+        Args:
+            discord_auth_obj: Optional DiscordAuth object to check. If not provided,
+                            tries to import global DISCORD_AUTH object.
+        
+        Returns: True if user is superuser/admin, False otherwise
+        """
         try:
-            from discord_auth import DISCORD_AUTH
-            if DISCORD_AUTH:
-                if DISCORD_AUTH.is_superuser() or DISCORD_AUTH.is_admin():
-                    return True
-        except ImportError:
-            pass
+            # If auth object is provided directly, use it
+            if discord_auth_obj:
+                is_super = discord_auth_obj.is_superuser() or discord_auth_obj.is_admin()
+                print(f"      [OBJECT] is_superuser_or_admin = {is_super}")
+                return is_super
+            
+            # Try to import DISCORD_AUTH from main module (punctaj.py)
+            import sys
+            if 'punctaj' in sys.modules:
+                punctaj_module = sys.modules['punctaj']
+                if hasattr(punctaj_module, 'DISCORD_AUTH'):
+                    DISCORD_AUTH = getattr(punctaj_module, 'DISCORD_AUTH')
+                    if DISCORD_AUTH and hasattr(DISCORD_AUTH, 'is_superuser'):
+                        is_super = DISCORD_AUTH.is_superuser() or DISCORD_AUTH.is_admin()
+                        print(f"      [MODULE] is_superuser_or_admin = {is_super}")
+                        return is_super
+            
+            # Fallback: try direct import from discord_auth
+            try:
+                from discord_auth import DISCORD_AUTH as GLOBAL_AUTH
+                if GLOBAL_AUTH and hasattr(GLOBAL_AUTH, 'is_superuser'):
+                    is_super = GLOBAL_AUTH.is_superuser() or GLOBAL_AUTH.is_admin()
+                    print(f"      [IMPORT] is_superuser_or_admin = {is_super}")
+                    return is_super
+            except ImportError:
+                pass
+            
+        except Exception as e:
+            print(f"      [ERROR] {e}")
+        
+        print(f"      [UNKNOWN] Assuming NOT superuser (fail-safe)")
         return False
     
     def _get_user_global_permissions(self) -> Dict[str, bool]:

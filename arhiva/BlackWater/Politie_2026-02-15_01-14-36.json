@@ -1,0 +1,28 @@
+{
+    "archived_at": "2026-02-15 01:14:36",
+    "institution": "Politie",
+    "city": "BlackWater",
+    "reset_by": "parjanu",
+    "discord_id": "703316932232872016",
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "rows": [
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": "11",
+            "ULTIMA_MOD": "2026-02-11 15:52:08"
+        }
+    ],
+    "employee_count": 1
+}

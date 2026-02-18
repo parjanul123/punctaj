@@ -7,10 +7,12 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+import os
 
 def rebuild_exe():
     """Rebuild the EXE with latest configuration"""
-    project_root = Path(r"d:\punctaj")
+    # Dynamic path - works on any drive
+    project_root = Path(os.path.dirname(os.path.abspath(__file__)))
     dist_folder = project_root / "dist"
     build_folder = project_root / "build"
     

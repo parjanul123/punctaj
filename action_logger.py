@@ -456,3 +456,36 @@ class ActionLogger:
             entity_id="",
             changes=f"old: {old_value}, new: {new_value}" if old_value or new_value else ""
         )
+    
+    def log_action(self, file_path: str, discord_id: str, discord_username: str, 
+                   action_type: str, details: str = "") -> bool:
+        """
+        Generic log_action method for compatibility with legacy code
+        
+        Args:
+            file_path: Path or name of file/entity being modified
+            discord_id: User's Discord ID
+            discord_username: User's Discord username
+            action_type: Type of action
+            details: Additional details about the action
+        
+        Returns:
+            bool: True if logged successfully
+        """
+        print(f"\n🔔 LOG_ACTION CALLED:")
+        print(f"   File: {file_path}")
+        print(f"   User: {discord_username} ({discord_id})")
+        print(f"   Action: {action_type}")
+        print(f"   Details: {details}")
+        
+        return self._log_action(
+            discord_id=discord_id,
+            action_type=action_type,
+            city="",  # Not specified in legacy calls
+            institution_name="",  # Not specified in legacy calls
+            details=f"{file_path}: {details}" if details else file_path,
+            discord_username=discord_username,
+            entity_name=file_path,
+            entity_id="",
+            changes=action_type
+        )

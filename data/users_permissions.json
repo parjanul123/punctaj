@@ -1,5 +1,83 @@
 {
   "users": {
+    "1449374935196893197": {
+      "discord_id": "1449374935196893197",
+      "username": "paulstanciu6_48913",
+      "is_superuser": false,
+      "is_admin": false,
+      "permissions": {
+        "global": {
+          "can_add_cities": false,
+          "can_manage_user_permissions": false,
+          "can_revoke_user_permissions": false,
+          "can_edit_cities": false,
+          "can_delete_cities": false,
+          "can_see_admin_button": false,
+          "can_see_admin_panel": false,
+          "can_see_user_permissions_button": true,
+          "can_add_city": false,
+          "can_edit_city": false,
+          "can_delete_city": false
+        },
+        "institutions": {
+          "BlackWater": {
+            "Politie": {
+              "can_view": true,
+              "can_edit": false,
+              "can_delete": false,
+              "can_add_employee": false,
+              "can_delete_employee": false,
+              "can_add_score": true,
+              "can_reset_scores": false,
+              "can_deduct_scores": false
+            }
+          },
+          "Saint_Denis": {
+            "Politie": {
+              "can_view": false,
+              "can_edit": false,
+              "can_delete": false,
+              "can_add_employee": false,
+              "can_delete_employee": false,
+              "can_add_score": false,
+              "can_reset_scores": false,
+              "can_deduct_scores": false
+            }
+          },
+          "Valentine": {
+            "Politie": {
+              "can_view": false,
+              "can_edit": false,
+              "can_delete": false,
+              "can_add_employee": false,
+              "can_delete_employee": false,
+              "can_add_score": false,
+              "can_reset_scores": false,
+              "can_deduct_scores": false
+            }
+          }
+        },
+        "cities": {
+          "BlackWater": {
+            "can_add_institutions": false,
+            "can_edit_institutions": false,
+            "can_delete_institutions": false
+          },
+          "Saint_Denis": {
+            "can_add_institutions": false,
+            "can_edit_institutions": false,
+            "can_delete_institutions": false
+          },
+          "Valentine": {
+            "can_add_institutions": false,
+            "can_edit_institutions": false,
+            "can_delete_institutions": false
+          }
+        }
+      },
+      "created_at": "2026-01-27T19:13:05.297942+00:00",
+      "updated_at": "2026-01-27T19:13:05.297942+00:00"
+    },
     "703316932232872016": {
       "discord_id": "703316932232872016",
       "username": "parjanu",
@@ -33,6 +111,11 @@
                 "can_delete_employees": true
               }
             },
+            "can_add_institutions": true,
+            "can_edit_institutions": true,
+            "can_delete_institutions": true
+          },
+          "Valentine": {
             "can_add_institutions": true,
             "can_edit_institutions": true,
             "can_delete_institutions": true
@@ -108,70 +191,9 @@
       },
       "created_at": "2026-01-27T19:00:04.164513+00:00",
       "updated_at": "2026-01-30T11:42:30.850212+00:00"
-    },
-    "1449374935196893197": {
-      "discord_id": "1449374935196893197",
-      "username": "paulstanciu6_48913",
-      "is_superuser": false,
-      "is_admin": false,
-      "permissions": {
-        "global": {
-          "can_add_cities": false,
-          "can_manage_user_permissions": false,
-          "can_revoke_user_permissions": false,
-          "can_edit_cities": false,
-          "can_delete_cities": false,
-          "can_see_admin_button": false,
-          "can_see_admin_panel": false,
-          "can_see_user_permissions_button": true,
-          "can_add_city": true,
-          "can_edit_city": false,
-          "can_delete_city": false
-        },
-        "institutions": {
-          "BlackWater": {
-            "Politie": {
-              "can_view": true,
-              "can_edit": false,
-              "can_delete": false,
-              "can_add_employee": false,
-              "can_delete_employee": false,
-              "can_add_score": true,
-              "can_reset_scores": false,
-              "can_deduct_scores": false
-            }
-          },
-          "Saint_Denis": {
-            "Politie": {
-              "can_view": false,
-              "can_edit": false,
-              "can_delete": false,
-              "can_add_employee": false,
-              "can_delete_employee": false,
-              "can_add_score": false,
-              "can_reset_scores": false,
-              "can_deduct_scores": false
-            }
-          }
-        },
-        "cities": {
-          "BlackWater": {
-            "can_add_institutions": false,
-            "can_edit_institutions": false,
-            "can_delete_institutions": false
-          },
-          "Saint_Denis": {
-            "can_add_institutions": false,
-            "can_edit_institutions": false,
-            "can_delete_institutions": false
-          }
-        }
-      },
-      "created_at": "2026-01-27T19:13:05.297942+00:00",
-      "updated_at": "2026-01-27T19:13:05.297942+00:00"
     }
   },
-  "last_sync": "2026-02-13T19:51:40.564821",
+  "last_sync": "2026-02-18T19:47:38.164271",
   "sync_status": "cloud_downloaded",
   "user_count": 2
 }

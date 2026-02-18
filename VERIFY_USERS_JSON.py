@@ -7,14 +7,9 @@ import os
 import json
 from pathlib import Path
 
-print("""
-╔═══════════════════════════════════════════════════════════════════════╗
-║               ✅ VERIFY Users Permissions JSON System                 ║
-╚═══════════════════════════════════════════════════════════════════════╝
-""")
-
-# Check files
-data_dir = Path("data")
+# Dynamic path - works on any drive
+BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+data_dir = BASE_DIR / "data"
 json_file = data_dir / "users_permissions.json"
 key_file = data_dir / ".encryption_key"
 

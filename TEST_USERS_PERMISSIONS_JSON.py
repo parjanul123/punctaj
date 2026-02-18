@@ -44,8 +44,9 @@ def test_users_permissions():
         print(f"❌ Cannot import manager: {e}")
         return
     
-    # Create manager
-    data_dir = "data"
+    # Create manager - Dynamic path that works on any drive
+    BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = str(BASE_DIR / "data")
     manager = UsersPermissionsJsonManager(url, key, data_dir)
     manager.ensure_json_exists()
     

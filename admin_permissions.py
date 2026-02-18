@@ -861,6 +861,48 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
         messagebox.showerror("Eroare", "Supabase nu este configurat!")
         return
     
+    # 🚨 SECURITY CHECK: Verifica dacă utilizatorul are permisiunea de a modifica permisiuni
+    if not discord_auth:
+        messagebox.showerror(
+            "Eroare de Autentificare",
+            "❌ Autentificare necesară pentru a accesa panoul de permisiuni!"
+        )
+        print(f"🚨 SECURITY ALERT: Attempt to access permissions panel without authentication!")
+        return
+    
+    # Verifica permisiunea de management
+    is_superuser = discord_auth.is_superuser() if hasattr(discord_auth, 'is_superuser') else False
+    has_manage_permission = discord_auth.has_granular_permission('can_manage_user_permissions') if hasattr(discord_auth, 'has_granular_permission') else False
+    
+    if not (is_superuser or has_manage_permission):
+        messagebox.showerror(
+            "Acces Refuzat",
+            "❌ NU AI PERMISIUNEA DE A MODIFICA PERMISIUNI!\n\n"
+            "Doar Superadmini și utilizatori cu dreapta 'Poate DA PERMISIUNI'\n"
+            "pot accesa acest panou.\n\n"
+            "📞 Contactează un administrator pentru mai multe detalii."
+        )
+        
+        # Log security incident
+        current_user = discord_auth.get_username() if hasattr(discord_auth, 'get_username') else "Unknown"
+        current_id = discord_auth.get_discord_id() if hasattr(discord_auth, 'get_discord_id') else "Unknown"
+        print(f"🚨 SECURITY ALERT: User {current_user} (ID: {current_id}) tried to access permissions panel WITHOUT authorization!")
+        
+        # Log to action logger if available
+        try:
+            if action_logger and hasattr(action_logger, 'log_action'):
+                action_logger.log_action(
+                    action="UNAUTHORIZED_ACCESS_ATTEMPT",
+                    details=f"Tried to access permissions panel without 'can_manage_user_permissions' permission",
+                    status="BLOCKED"
+                )
+        except Exception as e:
+            print(f"⚠️  Could not log security incident: {e}")
+        
+        return
+    
+    print(f"✅ SECURITY: User {discord_auth.get_username() if hasattr(discord_auth, 'get_username') else 'Unknown'} authorized to access permissions panel")
+    
     # Create permission managers
     perm_manager = PermissionManager(supabase_sync)
     
@@ -1184,12 +1226,43 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                             for institution, perms in institutions.items():
                                 new_perms[city][institution] = {perm: var.get() for perm, var in perms.items()}
                         
-                        print(f"DEBUG: Saving permissions: {new_perms}")
+                        print(f"\n{'='*80}")
+                        print(f"📝 PERMISSION SAVE REQUEST")
+                        print(f"{'='*80}")
+                        print(f"Target User: {username} (ID: {discord_id})")
+                        print(f"Total Cities: {len(new_perms)}")
+                        
+                        # Count changes
+                        total_perms = 0
+                        enabled_perms = 0
+                        for city, institutions in new_perms.items():
+                            for inst, perms in institutions.items():
+                                for perm, value in perms.items():
+                                    total_perms += 1
+                                    if value:
+                                        enabled_perms += 1
+                        
+                        print(f"Total Permissions: {total_perms}")
+                        print(f"Enabled Permissions: {enabled_perms}")
+                        print(f"Disabled Permissions: {total_perms - enabled_perms}")
+                        print(f"\nDetailed Permissions:")
+                        for city, institutions in new_perms.items():
+                            print(f"  🏙️  {city}:")
+                            for inst, perms in institutions.items():
+                                print(f"      🏢 {inst}:")
+                                for perm, value in perms.items():
+                                    status = "✅" if value else "❌"
+                                    print(f"         {status} {perm}: {value}")
+                        print(f"{'='*80}\n")
                         
                         # Store institution vars for save_all_permissions
                         permissions_window.institution_vars = city_vars
                         
+                        # 🔐 SECURITY: Log who is making this change
+                        print(f"🔐 Change initiated by: {discord_auth.get_username() if hasattr(discord_auth, 'get_username') else 'Unknown'}")
+                        
                         if inst_manager.save_user_institution_permissions(discord_id, new_perms):
+                            print(f"✅ DATABASE SAVE: SUCCESS")
                             messagebox.showinfo("Succes", f"✅ Permisiuni salvate pentru {username}!\n\n📝 Orice noi instituții/orașe adăugate în viitor vor fi salvate automat.\n\n⏳ Clientul se va reîncărca automat la sigurii conexiuni...")
                             
                             # ✅ RELOAD PERMISSIONS FOR THE UPDATED USER (if cached in memory)
@@ -1208,7 +1281,8 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                             except Exception as e:
                                 print(f"⚠️  Could not sync users_permissions.json: {e}")
                         else:
-                            messagebox.showerror("Eroare", "❌ Eroare la salvare!")
+                            print(f"❌ DATABASE SAVE: FAILED")
+                            messagebox.showerror("Eroare", "❌ Eroare la salvare!\n\nVerificați conexiunea la baza de date și logurile de eroare.")
                     except Exception as e:
                         print(f"ERROR in save_institution_permissions: {e}")
                         import traceback

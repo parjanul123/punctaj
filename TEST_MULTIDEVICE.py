@@ -70,7 +70,9 @@ def check_multidevice_prerequisites():
     # Check 5: Transfer ZIP
     print("\n5️⃣  Transfer Package ZIP")
     print("-" * 70)
-    transfer_dir = Path("d:\\transfer") if os.name == 'nt' else Path("/tmp/transfer")
+    # Dynamic path - works on any drive
+    transfer_root = Path(os.path.dirname(os.path.abspath(__file__))).parent.parent
+    transfer_dir = transfer_root / "transfer" if os.name == 'nt' else Path("/tmp/transfer")
     zip_files = list(transfer_dir.glob("*.zip"))
     if zip_files:
         print(f"✅ Transfer ZIP found: {zip_files[0].name}")
