@@ -237,19 +237,30 @@ class ActionLogger:
             # Save locally first
             self._save_local_log(log_entry)
             
-            # Then send to Supabase
-            response = requests.post(
-                url,
-                headers=self._get_headers(),
-                json=log_entry,
-                timeout=5
-            )
+            # Then send to Supabase - WITH DEBUG
+            print(f"🌐 Sending to Supabase: {url}")
+            print(f"📤 Headers: {self._get_headers()}")
+            print(f"📦 Payload: {log_entry}")
             
-            if response.status_code in [201, 200]:
-                print(f"✅ Log SUCCESS: {action_type} in {city}/{institution_name} ({details[:50]}...)")
-                return True
-            else:
-                print(f"❌ Log FAILED (status {response.status_code}): {response.text}")
+            try:
+                response = requests.post(
+                    url,
+                    headers=self._get_headers(),
+                    json=log_entry,
+                    timeout=5
+                )
+                
+                print(f"📥 Response status: {response.status_code}")
+                print(f"📥 Response body: {response.text}")
+                
+                if response.status_code in [201, 200]:
+                    print(f"✅ Log SUCCESS: {action_type} in {city}/{institution_name}")
+                    return True
+                else:
+                    print(f"❌ Log FAILED - HTTP {response.status_code}: {response.text}")
+                    return False
+            except requests.exceptions.RequestException as req_err:
+                print(f"❌ Network error sending to Supabase: {req_err}")
                 return False
         except Exception as e:
             print(f"❌ Error logging action: {e}")

@@ -1,0 +1,99 @@
+{
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "ranks": {
+        "1": "Offiter",
+        "2": "Caporal",
+        "3": "Sergent",
+        "4": "Plutonier",
+        "5": "Locotenent Instructor",
+        "6": "Sherif Adjunct",
+        "7": "Sherif"
+    },
+    "rankuri_desc": "",
+    "last_punctaj_update": "2026-02-18 18:13:47",
+    "version": 2,
+    "last_synced": null,
+    "pending_sync": false,
+    "rows": [
+        {
+            "DISCORD": "Arian",
+            "NUME IC": "Bill-MCnue",
+            "SERIE DE BULETIN": "M78Y78Y14",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "MBogdan",
+            "NUME IC": "Bogdan Maldarescu",
+            "SERIE DE BULETIN": "E42S23Z10",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "Pelicanu",
+            "NUME IC": "Cindea Geani",
+            "SERIE DE BULETIN": "T97C56S78",
+            "RANK": "6",
+            "ROLE": "Sherif Adjunct",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "Cristofor Columb",
+            "NUME IC": "Cristofor Columb",
+            "SERIE DE BULETIN": "S79A64B71",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "4",
+            "ROLE": "Plutonier",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "Fane Manevra",
+            "NUME IC": "Fane Manevra",
+            "SERIE DE BULETIN": "W92H36A72",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "Ion.policarpov",
+            "NUME IC": "Ion-Cucu",
+            "SERIE DE BULETIN": "W26G69Z92",
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "Sintact",
+            "NUME IC": "Jay Rocky",
+            "SERIE DE BULETIN": "J82B48Z62",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-18 18:13:47"
+        }
+    ]
+}

@@ -1092,7 +1092,7 @@ def sync_cloud_first_delete(city, institution, deleted_names, parent_window=None
         sync_dialog,
         text="🔄 Sincronizare în curs...",
         font=("Segoe UI", 11, "bold"),
-        fg="#2196F3"
+        fg="#d4553d"
     )
     status_label.pack(pady=20)
     
@@ -1537,7 +1537,7 @@ def discord_login():
         ))
         
         # Header with Discord color
-        header = tk.Frame(login_window, bg="#5865F2", height=100)
+        header = tk.Frame(login_window, bg="#c41e3a", height=100)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
         
@@ -1545,7 +1545,7 @@ def discord_login():
             header,
             text="🔐 Autentificare Discord - OBLIGATORIE",
             font=("Segoe UI", 14, "bold"),
-            bg="#5865F2",
+            bg="#c41e3a",
             fg="white"
         ).pack(pady=15)
         
@@ -1553,27 +1553,28 @@ def discord_login():
             header,
             text="Aplicația necesită login cu Discord pentru acces",
             font=("Segoe UI", 10),
-            bg="#5865F2",
+            bg="#c41e3a",
             fg="#e0e0e0"
         ).pack(pady=5)
         
         # Content frame
-        content = tk.Frame(login_window, bg="white")
+        content = tk.Frame(login_window, bg=THEME_COLORS["bg_dark"])
         content.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         tk.Label(
             content,
             text="Se conectează la Discord...",
             font=("Segoe UI", 13, "bold"),
-            bg="white"
+            bg=THEME_COLORS["bg_dark"],
+            fg=THEME_COLORS["accent_orange"]
         ).pack(pady=10)
         
         tk.Label(
             content,
             text="Se va deschide o fereastră de browser pentru autentificare.",
             font=("Segoe UI", 10),
-            bg="white",
-            fg="#555",
+            bg=THEME_COLORS["bg_dark"],
+            fg=THEME_COLORS["fg_secondary"],
             justify=tk.CENTER
         ).pack(pady=10)
         
@@ -1582,8 +1583,8 @@ def discord_login():
             content,
             text="⏳ Se pregătește serverul de autentificare...",
             font=("Segoe UI", 10),
-            bg="white",
-            fg="#666"
+            bg=THEME_COLORS["bg_dark"],
+            fg=THEME_COLORS["fg_secondary"]
         )
         status_label.pack(pady=10)
         
@@ -1605,7 +1606,7 @@ def discord_login():
             text="🔒 SIGUR & SECURIZAT:",
             font=("Segoe UI", 9, "bold"),
             bg="#f0f9ff",
-            fg="#2196F3"
+            fg="#d4553d"
         ).pack(anchor="w", padx=10, pady=(10, 2))
         
         tk.Label(
@@ -1620,7 +1621,7 @@ def discord_login():
         ).pack(anchor="w", padx=10, pady=(2, 10))
         
         # Buttons frame
-        buttons_frame = tk.Frame(content, bg="white")
+        buttons_frame = tk.Frame(content, bg=THEME_COLORS["bg_dark"])
         buttons_frame.pack(pady=10)
         
         # Cancel button - BUT NOT REALLY (it must authenticate)
@@ -2161,9 +2162,330 @@ Token Status: Valid
     
     messagebox.showinfo("Discord Profile", profile_text)
 
+# ================== THEME COLORS - RDR STYLE FROM CSS ====================
+THEME_COLORS = {
+    "bg_dark": "#000000",              # Negru profund (ca în design)
+    "bg_dark_secondary": "#0a0604",    # Negru foarte închis
+    "bg_frame": "#050302",             # Frame background negru
+    "fg_light": "#ff8844",             # Text portocaliu (ca în design)
+    "fg_secondary": "#cc6633",         # Text gri portocaliu
+    "accent_red": "#ff3000",           # Portocaliu intens glow
+    "accent_orange": "#ff6b47",        # Portocaliu CSS din design
+    "accent_orange_bright": "#ff8844", # Portocaliu mai deschis
+    "accent_orange_soft": "#ffb37e",   # Portocaliu CSS deschis
+    "button_bg": "#0a0604",            # Button background negru
+    "button_border": "#ff6b47",        # Button border portocaliu (vizibil)
+    "frame_bg": "#000000",             # Frame background negru profund
+    "input_bg": "#1a0f08",             # Input background negru profund
+    "tree_bg": "#000000",              # Treeview background negru profund
+    "tree_fg": "#ff8844",              # Treeview text portocaliu
+}
+
+def apply_theme_root(window):
+    """Aplică tema pe fereastra principală"""
+    window.configure(bg=THEME_COLORS["bg_dark"])
+    apply_windows_titlebar_theme(window)
+
+
+def _hex_to_colorref(hex_color):
+    """Convertește #RRGGBB în COLORREF (0x00BBGGRR) pentru API-ul Windows."""
+    color = hex_color.lstrip("#")
+    if len(color) != 6:
+        return 0
+    red = int(color[0:2], 16)
+    green = int(color[2:4], 16)
+    blue = int(color[4:6], 16)
+    return red | (green << 8) | (blue << 16)
+
+
+def apply_windows_titlebar_theme(window):
+    """Aplică tema negru-portocaliu pe title bar (minimize/maximize/close) în Windows."""
+    if sys.platform != "win32":
+        return
+
+    try:
+        import ctypes
+
+        hwnd = window.winfo_id()
+        dwmapi = ctypes.windll.dwmapi
+
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19
+        DWMWA_BORDER_COLOR = 34
+        DWMWA_CAPTION_COLOR = 35
+        DWMWA_TEXT_COLOR = 36
+
+        dark_mode = ctypes.c_int(1)
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ctypes.byref(dark_mode),
+            ctypes.sizeof(dark_mode)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE_OLD,
+            ctypes.byref(dark_mode),
+            ctypes.sizeof(dark_mode)
+        )
+
+        caption_color = ctypes.c_int(_hex_to_colorref(THEME_COLORS["bg_dark_secondary"]))
+        text_color = ctypes.c_int(_hex_to_colorref(THEME_COLORS["fg_light"]))
+        border_color = ctypes.c_int(_hex_to_colorref(THEME_COLORS["accent_orange"]))
+
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(caption_color),
+            ctypes.sizeof(caption_color)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_TEXT_COLOR,
+            ctypes.byref(text_color),
+            ctypes.sizeof(text_color)
+        )
+        dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_BORDER_COLOR,
+            ctypes.byref(border_color),
+            ctypes.sizeof(border_color)
+        )
+    except Exception:
+        pass
+
+
+def _register_titlebar_theme_hooks(window):
+    """Reaplică tema title bar când fereastra devine vizibilă/activă."""
+    if sys.platform != "win32":
+        return
+
+    try:
+        window.bind("<Map>", lambda _event: window.after(10, lambda: apply_windows_titlebar_theme(window)), add="+")
+        window.bind("<FocusIn>", lambda _event: window.after(10, lambda: apply_windows_titlebar_theme(window)), add="+")
+        window.after(10, lambda: apply_windows_titlebar_theme(window))
+    except Exception:
+        pass
+
+def apply_theme_frame(frame):
+    """Aplică tema pe Frame widget"""
+    try:
+        frame.configure(bg=THEME_COLORS["bg_dark"])
+    except:
+        pass
+
+def apply_theme_button(button, accent=True):
+    """Aplică tema pe Butoane - RDR Style CSS cu GLOW"""
+    try:
+        if accent:
+            button.configure(
+                bg=THEME_COLORS["button_bg"],           # Negru profund
+                fg=THEME_COLORS["fg_light"],            # #ff8844 portocaliu bold
+                activebackground=THEME_COLORS["accent_orange"],    # Hover portocaliu intens
+                activeforeground=THEME_COLORS["fg_light"],         # Hover text portocaliu
+                relief="solid",
+                bd=3,  # Border mai gros pentru glow
+                highlightbackground=THEME_COLORS["button_border"],  # Border portocaliu #ff6b47
+                highlightcolor=THEME_COLORS["accent_red"],          # Highlight roșu #ff3000
+                highlightthickness=2,
+                font=("Segoe UI", 10, "bold"),  # Bold ca în design
+                padx=12,
+                pady=8
+            )
+        else:
+            button.configure(
+                bg=THEME_COLORS["bg_dark_secondary"],
+                fg=THEME_COLORS["fg_light"],
+                activebackground=THEME_COLORS["accent_orange"],
+                activeforeground=THEME_COLORS["fg_light"],
+                relief="solid",
+                bd=2,
+                font=("Segoe UI", 9, "bold")
+            )
+    except:
+        pass
+
+def apply_theme_label(label):
+    """Aplică tema pe Label widget - Text portocaliu bold"""
+    try:
+        label.configure(
+            bg=THEME_COLORS["bg_dark"],
+            fg=THEME_COLORS["fg_light"],  # #ff8844 portocaliu
+            font=("Segoe UI", 10, "bold")
+        )
+    except:
+        pass
+
+def apply_theme_entry(entry):
+    """Aplică tema pe Entry widget - Negru profund cu text portocaliu"""
+    try:
+        entry.configure(
+            bg=THEME_COLORS["input_bg"],  # #1a0f08 negru profund
+            fg=THEME_COLORS["fg_light"],  # #ff8844 portocaliu
+            insertbackground=THEME_COLORS["accent_red"],  # #ff3000 roșu cursor
+            relief="solid",
+            bd=2,
+            font=("Segoe UI", 10)
+        )
+    except:
+        pass
+
+
+def apply_theme_checkbutton(checkbutton):
+    """Aplică tema pe Checkbutton widget."""
+    try:
+        checkbutton.configure(
+            bg=THEME_COLORS["bg_dark"],
+            fg=THEME_COLORS["fg_light"],
+            activebackground=THEME_COLORS["bg_dark_secondary"],
+            activeforeground=THEME_COLORS["fg_light"],
+            selectcolor=THEME_COLORS["input_bg"],
+            font=("Segoe UI", 10),
+            highlightthickness=0,
+            bd=0
+        )
+    except:
+        pass
+
+
+def apply_theme_scrollbar(scrollbar):
+    """Aplică tema pe Scrollbar widget."""
+    try:
+        scrollbar.configure(
+            bg=THEME_COLORS["button_bg"],
+            activebackground=THEME_COLORS["accent_orange"],
+            troughcolor=THEME_COLORS["bg_dark_secondary"],
+            relief="flat",
+            bd=0
+        )
+    except:
+        pass
+
+def apply_theme_to_children(widget):
+    """Aplică tema recursiv pe toți copiii unui widget - RDR Style"""
+    try:
+        # Aplică pe widget-ul curent
+        widget_type = widget.__class__.__name__
+        
+        if widget_type == "Button":
+            apply_theme_button(widget)
+        elif widget_type == "Label":
+            apply_theme_label(widget)
+        elif widget_type == "Entry":
+            apply_theme_entry(widget)
+        elif hasattr(widget, 'configure'):
+            # Frame, Canvas, etc - toate negru profund
+            try:
+                if widget_type in ["Frame", "Canvas"]:
+                    widget.configure(bg=THEME_COLORS["bg_dark"])  # #000000 negru
+                elif widget_type == "Text":
+                    widget.configure(
+                        bg=THEME_COLORS["input_bg"],
+                        fg=THEME_COLORS["fg_light"],
+                        insertbackground=THEME_COLORS["accent_red"]
+                    )
+            except:
+                pass
+        
+        # Aplică recursiv pe copii
+        for child in widget.winfo_children():
+            apply_theme_to_children(child)
+    except:
+        pass
+
+
+def themed_askstring(title, prompt, initialvalue="", parent=None):
+    """Dialog input tematic (negru-portocaliu) ca în aplicație."""
+    parent_window = parent or root
+    result = {"value": None}
+
+    dialog = tk.Toplevel(parent_window)
+    dialog.title(title)
+    dialog.geometry("460x220")
+    dialog.resizable(False, False)
+    dialog.transient(parent_window)
+    dialog.grab_set()
+
+    apply_theme_root(dialog)
+
+    container = tk.Frame(dialog, bg=THEME_COLORS["bg_dark"], padx=15, pady=15)
+    container.pack(fill="both", expand=True)
+
+    lbl = tk.Label(
+        container,
+        text=prompt,
+        bg=THEME_COLORS["bg_dark"],
+        fg=THEME_COLORS["fg_light"],
+        font=("Segoe UI", 10, "bold"),
+        anchor="w",
+        justify="left"
+    )
+    lbl.pack(fill="x", pady=(0, 10))
+
+    entry = tk.Entry(container, font=("Segoe UI", 10))
+    entry.pack(fill="x", pady=(0, 15))
+    apply_theme_entry(entry)
+    if initialvalue is not None:
+        entry.insert(0, initialvalue)
+    entry.select_range(0, tk.END)
+    entry.focus_set()
+
+    button_row = tk.Frame(container, bg=THEME_COLORS["bg_dark"])
+    button_row.pack(fill="x", pady=(5, 0))
+
+    def on_ok():
+        value = entry.get().strip()
+        result["value"] = value if value else None
+        dialog.destroy()
+
+    def on_cancel():
+        result["value"] = None
+        dialog.destroy()
+
+    btn_ok = tk.Button(button_row, text="✓ OK", width=14, command=on_ok)
+    btn_ok.pack(side="left", padx=(0, 8))
+    apply_theme_button(btn_ok)
+
+    btn_cancel = tk.Button(button_row, text="✕ Anulează", width=14, command=on_cancel)
+    btn_cancel.pack(side="left")
+    apply_theme_button(btn_cancel, accent=False)
+
+    dialog.bind("<Return>", lambda _e: on_ok())
+    dialog.bind("<Escape>", lambda _e: on_cancel())
+
+    parent_window.wait_window(dialog)
+    return result["value"]
+
+
+# Aplică tema automat pentru TOATE ferestrele Tk/Toplevel (inclusiv dialoguri/pop-up-uri)
+_original_tk_init = tk.Tk.__init__
+_original_toplevel_init = tk.Toplevel.__init__
+
+
+def _themed_tk_init(self, *args, **kwargs):
+    _original_tk_init(self, *args, **kwargs)
+    try:
+        _register_titlebar_theme_hooks(self)
+    except Exception:
+        pass
+
+
+def _themed_toplevel_init(self, *args, **kwargs):
+    _original_toplevel_init(self, *args, **kwargs)
+    try:
+        _register_titlebar_theme_hooks(self)
+        self.after(0, lambda: apply_theme_root(self))
+    except Exception:
+        pass
+
+
+tk.Tk.__init__ = _themed_tk_init
+tk.Toplevel.__init__ = _themed_toplevel_init
+
 # ================== UI ==================
 root = tk.Tk()
 root.title("Manager punctaj - orase / institutii / angajati")
+apply_theme_root(root)
 
 # Responsive window sizing based on screen resolution
 screenwidth = root.winfo_screenwidth()
@@ -2187,43 +2509,79 @@ except Exception as e:
 
 style = ttk.Style()
 style.theme_use("default")
-style.configure("Treeview", rowheight=28)
-style.configure("Treeview.Heading", anchor="center")
+style.configure("TFrame", background=THEME_COLORS["bg_dark"])
+style.configure("TLabel", background=THEME_COLORS["bg_dark"], foreground=THEME_COLORS["fg_light"])
+style.configure("TLabelframe", background=THEME_COLORS["bg_dark"], foreground=THEME_COLORS["fg_light"])
+style.configure("TLabelframe.Label", background=THEME_COLORS["bg_dark"], foreground=THEME_COLORS["fg_light"])
+style.configure("TNotebook", background=THEME_COLORS["bg_dark"], borderwidth=0)
+style.configure(
+    "TNotebook.Tab",
+    background=THEME_COLORS["bg_dark_secondary"],
+    foreground=THEME_COLORS["fg_light"],
+    padding=(12, 6),
+    font=("Segoe UI", 9, "bold")
+)
+style.map(
+    "TNotebook.Tab",
+    background=[("selected", THEME_COLORS["bg_dark"]), ("active", THEME_COLORS["button_bg"])],
+    foreground=[("selected", THEME_COLORS["accent_orange_bright"]), ("active", THEME_COLORS["fg_light"])]
+)
+style.configure("Treeview", rowheight=28, background=THEME_COLORS["tree_bg"], foreground=THEME_COLORS["tree_fg"], fieldbackground=THEME_COLORS["tree_bg"])
+style.configure("Treeview.Heading", anchor="center", background=THEME_COLORS["bg_dark_secondary"], foreground=THEME_COLORS["accent_red"])
+style.map('Treeview', background=[('selected', THEME_COLORS["accent_orange_bright"])])
+
+# Configure ttk.Combobox for dark theme
+style.configure("TCombobox", fieldbackground=THEME_COLORS["input_bg"], foreground=THEME_COLORS["fg_light"], background=THEME_COLORS["button_bg"])
+style.map(
+    "TCombobox",
+    fieldbackground=[("readonly", THEME_COLORS["input_bg"])],
+    foreground=[("readonly", THEME_COLORS["fg_light"])],
+    selectbackground=[("readonly", THEME_COLORS["input_bg"])],
+    selectforeground=[("readonly", THEME_COLORS["fg_light"])],
+    background=[("readonly", THEME_COLORS["button_bg"])]
+)
+
+# Configure Entry widget via tk.Entry (not ttk, already handled in code)
 
 # ================== LAYOUT ==================
-main = tk.Frame(root)
+main = tk.Frame(root, bg=THEME_COLORS["bg_dark"])
 main.pack(fill="both", expand=True)
+apply_theme_frame(main)
 
 # -------- SIDEBAR --------
-sidebar = tk.Frame(main, width=200, bg="#f0f0f0")
+sidebar = tk.Frame(main, width=200, bg=THEME_COLORS["bg_dark"])
 sidebar.pack(side="left", fill="y")
 sidebar.pack_propagate(False)
 
-tk.Label(sidebar, text="Orașe", font=("Segoe UI", 12, "bold"), bg="#f0f0f0").pack(pady=20)
+sidebar_label = tk.Label(sidebar, text="Orașe", font=("Segoe UI", 12, "bold"), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["accent_red"])
+sidebar_label.pack(pady=20)
 
 btn_add_tab = tk.Button(sidebar, text="➕ Adaugă oraș", width=18)
 btn_add_tab.pack(pady=8)
+apply_theme_button(btn_add_tab)
 # Verificăm permisiunea pentru adăugare oraș - numai user și admin
 if is_read_only_user():
     btn_add_tab.config(state='disabled')
 
 btn_edit_tab = tk.Button(sidebar, text="✏️ Editează oraș", width=18)
 btn_edit_tab.pack(pady=8)
+apply_theme_button(btn_edit_tab)
 # Verificăm permisiunea pentru editare oraș - numai user și admin
 if is_read_only_user():
     btn_edit_tab.config(state='disabled')
 
 btn_del_tab = tk.Button(sidebar, text="❌ Șterge oraș", width=18)
 btn_del_tab.pack(pady=8)
+apply_theme_button(btn_del_tab)
 # Verificăm permisiunea pentru ștergere oraș - numai user și admin
 if is_read_only_user():
     btn_del_tab.config(state='disabled')
 
 # Separator
-tk.Frame(sidebar, height=2, bg="#cccccc").pack(fill=tk.X, pady=15, padx=10)
+tk.Frame(sidebar, height=2, bg=THEME_COLORS["accent_orange"]).pack(fill=tk.X, pady=15, padx=10)
 
 # Container pentru Discord user section (va fi populat după autentificare)
-discord_section_container = tk.Frame(sidebar, bg="#f0f0f0")
+discord_section_container = tk.Frame(sidebar, bg=THEME_COLORS["bg_dark_secondary"])
 discord_section_container.pack(fill=tk.X, padx=5, pady=10)
 
 def open_backup_manager():
@@ -2255,6 +2613,9 @@ def refresh_discord_section():
     for widget in discord_section_container.winfo_children():
         widget.destroy()
     
+    # Aplică tema pe containerul gol
+    discord_section_container.config(bg=THEME_COLORS["bg_dark_secondary"])
+    
     if not DISCORD_AUTH or not DISCORD_AUTH.is_authenticated():
         print("DEBUG: No Discord auth, section empty")
         return
@@ -2271,15 +2632,15 @@ def refresh_discord_section():
         discord_section_container,
         text=f"👤 {username}",
         font=("Segoe UI", 9, "bold"),
-        bg="#f0f0f0",
-        fg="#5865F2"
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["accent_orange"]
     ).pack(pady=5)
     
     # Role badge with color coding + emoji
     role_colors = {
-        'superuser': '#9b59b6',
-        'admin': '#e74c3c',
-        'user': '#3498db',
+        'superuser': '#c41e3a',
+        'admin': '#c41e3a',
+        'user': '#c41e3a',
         'viewer': '#95a5a6'
     }
     role_emojis = {
@@ -2303,7 +2664,7 @@ def refresh_discord_section():
     role_label.pack(pady=5, fill="x", padx=5)
     
     # Permisiuni detaliate - sub rolul principal
-    perms_frame = tk.Frame(discord_section_container, bg="#f0f0f0")
+    perms_frame = tk.Frame(discord_section_container, bg=THEME_COLORS["bg_dark_secondary"])
     perms_frame.pack(fill="x", padx=5, pady=5)
     
     # Afișează permisiuni detaliate
@@ -2315,10 +2676,10 @@ def refresh_discord_section():
         perms_color = "#2e7d32"
     elif is_admin:
         perms_text = "✅ Admin Access\n🔓 Most Permissions"
-        perms_color = "#e74c3c"
+        perms_color = "#c41e3a"
     elif user_role == "user":
         perms_text = "✅ Can View\n✏️ Can Edit\n📝 Can Modify"
-        perms_color = "#1976d2"
+        perms_color = "#d4553d"
     else:  # viewer
         perms_text = "👁️ Read-Only\n❌ No Edit\n❌ No Delete"
         perms_color = "#9e9e9e"
@@ -2327,8 +2688,8 @@ def refresh_discord_section():
         perms_frame,
         text=perms_text,
         font=("Segoe UI", 7),
-        bg="#f0f0f0",
-        fg=perms_color,
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["accent_orange_soft"],
         justify="left"
     ).pack(anchor="w", padx=10, pady=3)
     
@@ -2396,7 +2757,7 @@ def refresh_discord_section():
             text="✅ Acces la Toate Tabelele",
             font=("Segoe UI", 8, "bold"),
             bg="#e3f2fd",
-            fg="#1565c0"
+            fg="#c41e3a"
         ).pack(anchor="w", padx=8, pady=5)
     
     # Buton Admin - Pentru SUPERUSER sau utilizatori cu permisiunea 'can_see_admin_button'
@@ -2440,7 +2801,7 @@ if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
         sync_window.geometry(f"+{x}+{y}")
         
         # Header
-        header_frame = tk.Frame(sync_window, bg="#3498db", height=60)
+        header_frame = tk.Frame(sync_window, bg="#c41e3a", height=60)
         header_frame.pack(fill=tk.X)
         header_frame.pack_propagate(False)
         
@@ -2448,19 +2809,20 @@ if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
             header_frame,
             text="☁️ Sincronizare Cloud",
             font=("Segoe UI", 14, "bold"),
-            bg="#3498db",
+            bg="#c41e3a",
             fg="white"
         ).pack(pady=15)
         
         # Content
-        content_frame = tk.Frame(sync_window, bg="white")
+        content_frame = tk.Frame(sync_window, bg=THEME_COLORS["bg_dark"])
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         tk.Label(
             content_frame,
             text="Alege tipul de sincronizare:",
             font=("Segoe UI", 11, "bold"),
-            bg="white"
+            bg=THEME_COLORS["bg_dark"],
+            fg=THEME_COLORS["accent_orange"]
         ).pack(pady=10)
         
         # Buton Upload (Trimite în cloud)
@@ -2626,7 +2988,7 @@ if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
             download_frame,
             text="📥 DOWNLOAD - Descarcă din Cloud",
             font=("Segoe UI", 10, "bold"),
-            bg="#2196F3",
+            bg="#d4553d",
             fg="white",
             command=download_from_cloud,
             relief=tk.FLAT,
@@ -2725,7 +3087,7 @@ if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
         ).pack(pady=2)
 
 # Container pentru butoane admin (va fi populat după autentificare)
-admin_buttons_container = tk.Frame(sidebar, bg="#f0f0f0")
+admin_buttons_container = tk.Frame(sidebar, bg=THEME_COLORS["bg_dark_secondary"])
 admin_buttons_container.pack(fill=tk.X)
 
 def refresh_admin_buttons():
@@ -2757,7 +3119,7 @@ def refresh_admin_buttons():
                 admin_buttons_container,
                 text="🔐 Permisiuni Utilizatori",
                 width=18,
-                bg="#e74c3c",
+                bg="#c41e3a",
                 fg="white",
                 font=("Segoe UI", 9, "bold"),
                 command=open_permissions_panel
@@ -2772,7 +3134,7 @@ def refresh_admin_buttons():
                 admin_buttons_container,
                 text="🛡️ Admin Panel",
                 width=18,
-                bg="#e74c3c",
+                bg="#c41e3a",
                 fg="white",
                 font=("Segoe UI", 9, "bold"),
                 command=lambda: open_admin_panel(root, SUPABASE_SYNC, DISCORD_AUTH, DATA_DIR, ACTION_LOGGER)
@@ -2780,12 +3142,14 @@ def refresh_admin_buttons():
             btn_admin.pack(pady=8)
     
     # Buton Raport Săptămânal din Arhiva
-    ttk.Button(
+    btn_weekly_report = tk.Button(
         admin_buttons_container,
         text="📋 Raport Săptămâna Trecută",
         width=18,
         command=show_weekly_report
-    ).pack(pady=8)
+    )
+    btn_weekly_report.pack(pady=8)
+    apply_theme_button(btn_weekly_report)
     
     # Buton Activity Logs
     def open_logs_viewer():
@@ -2796,14 +3160,14 @@ def refresh_admin_buttons():
         logs_window.grab_set()
         
         # Header
-        header = tk.Label(logs_window, text="📋 Loguri Activitate - Pe instituție", font=("Segoe UI", 12, "bold"), bg="#1565c0", fg="white")
+        header = tk.Label(logs_window, text="📋 Loguri Activitate - Pe instituție", font=("Segoe UI", 12, "bold"), bg="#c41e3a", fg="white")
         header.pack(fill="x", padx=0, pady=0, ipady=10)
         
         # Filter frame
-        filter_frame = tk.Frame(logs_window, bg="#f0f0f0")
+        filter_frame = tk.Frame(logs_window, bg=THEME_COLORS["bg_dark"])
         filter_frame.pack(fill="x", padx=10, pady=10)
         
-        tk.Label(filter_frame, text="Selectează instituția:", font=("Segoe UI", 10), bg="#f0f0f0").pack(side="left", padx=5)
+        tk.Label(filter_frame, text="Selectează instituția:", font=("Segoe UI", 10), bg=THEME_COLORS["bg_dark"], fg=THEME_COLORS["fg_light"]).pack(side="left", padx=5)
         
         # Obține lista instituțiilor
         institutions_list = []
@@ -2869,33 +3233,33 @@ def refresh_admin_buttons():
                     else:
                         for log in logs:
                             # Card pentru fiecare log
-                            card = tk.Frame(scroll_frame, bg="white", relief="solid", borderwidth=1)
+                            card = tk.Frame(scroll_frame, bg=THEME_COLORS["bg_dark_secondary"], relief="solid", borderwidth=1)
                             card.pack(fill="x", padx=5, pady=5)
                             
                             # Timestamp + action
                             header_text = f"🕐 {log.get('timestamp', 'N/A')[:19]} - {log.get('action_type', 'unknown').upper()}"
-                            tk.Label(card, text=header_text, font=("Segoe UI", 9, "bold"), bg="white", fg="#1565c0", anchor="w").pack(fill="x", padx=10, pady=(8, 3))
+                            tk.Label(card, text=header_text, font=("Segoe UI", 9, "bold"), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["accent_orange"], anchor="w").pack(fill="x", padx=10, pady=(8, 3))
                             
                             # Discord ID
                             discord_id = log.get('discord_id', 'Unknown')
-                            tk.Label(card, text=f"👤 Discord ID: {discord_id}", font=("Segoe UI", 9), bg="white", fg="#666", anchor="w").pack(fill="x", padx=20, pady=1)
+                            tk.Label(card, text=f"👤 Discord ID: {discord_id}", font=("Segoe UI", 9), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["fg_secondary"], anchor="w").pack(fill="x", padx=20, pady=1)
                             
                             # Discord Username
                             discord_username = log.get('discord_username', discord_id)
-                            tk.Label(card, text=f"👤 Discord Username: {discord_username}", font=("Segoe UI", 9, "bold"), bg="white", fg="#2196F3", anchor="w").pack(fill="x", padx=20, pady=1)
+                            tk.Label(card, text=f"👤 Discord Username: {discord_username}", font=("Segoe UI", 9, "bold"), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["accent_orange"], anchor="w").pack(fill="x", padx=20, pady=1)
                             
                             # Institution
                             institution = log.get('institution', 'N/A')
                             city = log.get('city', 'N/A')
-                            tk.Label(card, text=f"🏢 {city} / {institution}", font=("Segoe UI", 9), bg="white", fg="#666", anchor="w").pack(fill="x", padx=20, pady=1)
+                            tk.Label(card, text=f"🏢 {city} / {institution}", font=("Segoe UI", 9), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["fg_light"], anchor="w").pack(fill="x", padx=20, pady=1)
                             
                             # Details
                             details = log.get('details', 'No details')
-                            tk.Label(card, text=f"📝 {details}", font=("Segoe UI", 8), bg="white", fg="#333", anchor="w", wraplength=850, justify="left").pack(fill="x", padx=20, pady=(1, 8))
+                            tk.Label(card, text=f"📝 {details}", font=("Segoe UI", 8), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["fg_secondary"], anchor="w", wraplength=850, justify="left").pack(fill="x", padx=20, pady=(1, 8))
                 else:
-                    tk.Label(scroll_frame, text=f"❌ Eroare la citire: {response.status_code}", font=("Segoe UI", 10), fg="#e74c3c").pack(pady=20)
+                    tk.Label(scroll_frame, text=f"❌ Eroare la citire: {response.status_code}", font=("Segoe UI", 10), fg="#c41e3a").pack(pady=20)
             except Exception as e:
-                tk.Label(scroll_frame, text=f"❌ Eroare: {str(e)}", font=("Segoe UI", 10), fg="#e74c3c").pack(pady=20)
+                tk.Label(scroll_frame, text=f"❌ Eroare: {str(e)}", font=("Segoe UI", 10), fg="#c41e3a").pack(pady=20)
             
             canvas.configure(scrollregion=canvas.bbox("all"))
         
@@ -2912,7 +3276,7 @@ def refresh_admin_buttons():
         admin_buttons_container,
         text="📋 Activity Logs",
         width=18,
-        bg="#3498db",
+        bg="#c41e3a",
         fg="white",
         font=("Segoe UI", 9, "bold"),
         command=open_logs_viewer
@@ -2920,10 +3284,10 @@ def refresh_admin_buttons():
     btn_logs.pack(pady=8)
 
 # Separator
-tk.Frame(sidebar, height=2, bg="#cccccc").pack(fill=tk.X, pady=15, padx=10)
+tk.Frame(sidebar, height=2, bg=THEME_COLORS["accent_orange"]).pack(fill=tk.X, pady=15, padx=10)
 
 # -------- CONTENT --------
-content = tk.Frame(main)
+content = tk.Frame(main, bg=THEME_COLORS["bg_dark"])
 content.pack(side="right", fill="both", expand=True)
 
 city_notebook = ttk.Notebook(content)
@@ -3065,17 +3429,17 @@ def create_city_ui(city):
     """Creează UI pentru un oraș și încarcă instituțiile existente."""
     ensure_city(city)
 
-    city_frame = tk.Frame(city_notebook)
+    city_frame = tk.Frame(city_notebook, bg=THEME_COLORS["bg_dark"])
     city_notebook.add(city_frame, text=city)
 
     # Frame cu scroll bar pentru controls
-    controls_container = tk.Frame(city_frame)
+    controls_container = tk.Frame(city_frame, bg=THEME_COLORS["bg_dark"])
     controls_container.pack(fill="x", pady=8)
     
     # Horizontal scroll bar la controls
-    controls_canvas = tk.Canvas(controls_container, height=50, bg="white", highlightthickness=0)
+    controls_canvas = tk.Canvas(controls_container, height=50, bg=THEME_COLORS["bg_dark"], highlightthickness=0)
     h_scrollbar = tk.Scrollbar(controls_container, orient="horizontal", command=controls_canvas.xview)
-    controls = tk.Frame(controls_canvas)
+    controls = tk.Frame(controls_canvas, bg=THEME_COLORS["bg_dark"])
     
     controls.bind(
         "<Configure>",
@@ -3091,18 +3455,21 @@ def create_city_ui(city):
     # Buton Adaugă Instituție
     btn_add_inst = tk.Button(controls, text="➕ Adaugă instituție", width=18, command=lambda c=city: add_institution(c))
     btn_add_inst.pack(side="left", padx=5)
+    apply_theme_button(btn_add_inst)
     if not check_institution_permission(city, "", 'can_edit'):
         btn_add_inst.config(state='disabled')
     
     # Buton Editează Instituție
     btn_edit_inst = tk.Button(controls, text="✏️ Editează instituție", width=18, command=lambda c=city: edit_institution(c))
     btn_edit_inst.pack(side="left", padx=5)
+    apply_theme_button(btn_edit_inst)
     if not check_institution_permission(city, "", 'can_edit'):
         btn_edit_inst.config(state='disabled')
     
     # Buton Șterge Instituții
     btn_del_inst = tk.Button(controls, text="❌ Șterge instituții", width=18, command=lambda c=city: delete_institution_ui(c))
     btn_del_inst.pack(side="left", padx=5)
+    apply_theme_button(btn_del_inst)
     if not check_institution_permission(city, "", 'can_delete'):
         btn_del_inst.config(state='disabled')
 
@@ -3127,7 +3494,7 @@ def add_tab():
         messagebox.showerror("Permisiune refuzată", msg)
         return
     
-    city = simpledialog.askstring("Nume oraș", "Introdu numele orașului:")
+    city = themed_askstring("Nume oraș", "Introdu numele orașului:", parent=root)
     if not city:
         return
 
@@ -3168,7 +3535,7 @@ def edit_tab():
         return
 
     old_city = city_notebook.tab(current, "text")
-    new_city = simpledialog.askstring("Editează oraș", "Nume nou:", initialvalue=old_city)
+    new_city = themed_askstring("Editează oraș", "Nume nou:", initialvalue=old_city, parent=root)
     if not new_city:
         return
     new_city = new_city.strip().replace(" ", "_")
@@ -3214,30 +3581,32 @@ def delete_tab():
     win.geometry("400x450")
     win.grab_set()
 
-    frame_top = tk.Frame(win, bg="#ffe8e8", pady=10)
+    frame_top = tk.Frame(win, bg=THEME_COLORS["bg_dark_secondary"], pady=10)
     frame_top.pack(fill="x")
 
     tk.Label(
         frame_top,
         text="Selectează orașele pe care vrei să le ștergi",
         font=("Segoe UI", 10, "bold"),
-        bg="#ffe8e8"
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["fg_light"]
     ).pack(pady=5)
 
     tk.Label(
         frame_top,
         text="⚠️ Se vor șterge toate instituțiile și angajații din orașele selectate",
         font=("Segoe UI", 9),
-        fg="#d32f2f",
-        bg="#ffe8e8"
+        fg=THEME_COLORS["accent_red"],
+        bg=THEME_COLORS["bg_dark_secondary"]
     ).pack(pady=2)
 
-    frame_list = tk.Frame(win)
+    frame_list = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     frame_list.pack(fill="both", expand=True, pady=10)
 
-    canvas = tk.Canvas(frame_list)
+    canvas = tk.Canvas(frame_list, bg=THEME_COLORS["bg_dark"], highlightthickness=0)
     scrollbar = tk.Scrollbar(frame_list, orient="vertical", command=canvas.yview)
-    scroll_frame = tk.Frame(canvas)
+    apply_theme_scrollbar(scrollbar)
+    scroll_frame = tk.Frame(canvas, bg=THEME_COLORS["bg_dark"])
 
     scroll_frame.bind(
         "<Configure>",
@@ -3261,23 +3630,28 @@ def delete_tab():
             anchor="w",
             font=("Segoe UI", 10)
         )
+        apply_theme_checkbutton(chk)
         chk.pack(fill="x", padx=10, pady=3)
         vars_cities.append((city, var))
 
-    btn_frame = tk.Frame(win)
+    btn_frame = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     btn_frame.pack(pady=5)
 
     def select_all():
         for _, var in vars_cities:
             var.set(True)
 
-    tk.Button(btn_frame, text="✓ Selectează toate", command=select_all, width=18).pack(side="left", padx=5)
+    btn_select_all = tk.Button(btn_frame, text="✓ Selectează toate", command=select_all, width=18)
+    btn_select_all.pack(side="left", padx=5)
+    apply_theme_button(btn_select_all)
 
     def deselect_all():
         for _, var in vars_cities:
             var.set(False)
 
-    tk.Button(btn_frame, text="✗ Deselectează toate", command=deselect_all, width=18).pack(side="left", padx=5)
+    btn_deselect_all = tk.Button(btn_frame, text="✗ Deselectează toate", command=deselect_all, width=18)
+    btn_deselect_all.pack(side="left", padx=5)
+    apply_theme_button(btn_deselect_all, accent=False)
 
     def aplica():
         selectate = [city for city, var in vars_cities if var.get()]
@@ -3303,16 +3677,15 @@ def delete_tab():
         win.destroy()
         messagebox.showinfo("Succes", "Orașele selectate au fost șterse.")
 
-    tk.Button(
+    btn_delete_cities = tk.Button(
         win,
         text="🗑️ ȘTERGE ORAȘE",
-        bg="#F44336",
-        fg="white",
-        font=("Segoe UI", 10, "bold"),
         width=25,
         height=2,
         command=aplica
-    ).pack(pady=15)
+    )
+    btn_delete_cities.pack(pady=15)
+    apply_theme_button(btn_delete_cities)
  
 # ================== INSTITUȚII ==================
 def sort_tree_by_punctaj(tree):
@@ -3733,7 +4106,7 @@ def show_weekly_report():
             text=f"📊 {summary_text}",
             font=("Segoe UI", 10),
             background="#e3f2fd",
-            foreground="#1976d2"
+            foreground="#d4553d"
         ).pack(anchor="w", padx=10, pady=2)
         
         # Treeview cu fișierele găsite
@@ -4008,7 +4381,7 @@ def create_institution_tab(city, institution):
     ensure_institution(city, institution)
 
     inst_nb = tabs[city]["nb"]
-    frame = tk.Frame(inst_nb)
+    frame = tk.Frame(inst_nb, bg=THEME_COLORS["bg_dark"])
     inst_nb.add(frame, text=institution)
 
     inst_data = load_institution(city, institution)
@@ -4017,7 +4390,7 @@ def create_institution_tab(city, institution):
     ranks_map = inst_data.get("ranks", {})
 
     # Frame pentru treeview cu scrollbars
-    tree_frame = tk.Frame(frame)
+    tree_frame = tk.Frame(frame, bg=THEME_COLORS["bg_dark"])
     tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
     
     # Vertical scrollbar
@@ -4081,15 +4454,15 @@ def create_institution_tab(city, institution):
 
     # ===== INFO FRAME CU TIMESTAMP ULTIMEI MODIFICARI =====
     last_update = inst_data.get("last_punctaj_update", "N/A")
-    info_frame = tk.Frame(frame, bg="#e3f2fd", relief="solid", borderwidth=1)
+    info_frame = tk.Frame(frame, bg=THEME_COLORS["bg_dark_secondary"], relief="solid", borderwidth=1)
     info_frame.pack(fill="x", padx=10, pady=5)
     
     info_label = tk.Label(
         info_frame, 
         text=f"⏱️ Ultima modificare: {last_update}", 
         font=("Segoe UI", 9), 
-        bg="#e3f2fd",
-        fg="#1565c0"
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["accent_orange_bright"]
     )
     info_label.pack(side="left", padx=10, pady=5)
     
@@ -4097,10 +4470,10 @@ def create_institution_tab(city, institution):
     tabs[city]["info_frames"][institution] = info_label
 
     # ===== SEARCH FRAME =====
-    search_frame = tk.Frame(frame, bg="#f0f0f0", relief="solid", borderwidth=1)
+    search_frame = tk.Frame(frame, bg=THEME_COLORS["bg_dark_secondary"], relief="solid", borderwidth=1)
     search_frame.pack(fill="x", padx=10, pady=10)
     
-    tk.Label(search_frame, text="🔍 Cauta:", font=("Segoe UI", 10, "bold"), bg="#f0f0f0").pack(side="left", padx=10, pady=8)
+    tk.Label(search_frame, text="🔍 Cauta:", font=("Segoe UI", 10, "bold"), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["accent_orange"]).pack(side="left", padx=10, pady=8)
     
     # Dropdown pentru selectarea coloanei (excluzând ROLE)
     searchable_columns = [col for col in columns if col != "ROLE"]
@@ -4125,13 +4498,18 @@ def create_institution_tab(city, institution):
         cb_column.current(0)
         apply_search_filter(tree, "", "", rows, columns)
     
-    tk.Button(search_frame, text="🔎 Cauta", command=do_search, font=("Segoe UI", 9), bg="#2196F3", fg="white").pack(side="left", padx=5)
-    tk.Button(search_frame, text="✕ Reset", command=reset_search, font=("Segoe UI", 9), bg="#757575", fg="white").pack(side="left", padx=5)
+    btn_search = tk.Button(search_frame, text="🔎 Cauta", command=do_search, font=("Segoe UI", 9))
+    btn_search.pack(side="left", padx=5)
+    apply_theme_button(btn_search)
+
+    btn_search_reset = tk.Button(search_frame, text="✕ Reset", command=reset_search, font=("Segoe UI", 9))
+    btn_search_reset.pack(side="left", padx=5)
+    apply_theme_button(btn_search_reset, accent=False)
     
     # Bind Enter pe search_entry pentru căutare rapidă
     search_entry.bind("<Return>", lambda e: do_search())
 
-    btn_frame = tk.Frame(frame)
+    btn_frame = tk.Frame(frame, bg=THEME_COLORS["bg_dark"])
     btn_frame.pack(pady=10)
 
     # Buton Adaugă Angajat
@@ -4140,6 +4518,7 @@ def create_institution_tab(city, institution):
         command=lambda t=tree, c=city, inst=institution: add_member(t, c, inst)
     )
     btn_add_emp.grid(row=0, column=0, padx=8, pady=5)
+    apply_theme_button(btn_add_emp)
     # Verifică permisiuni pe instituție (granulare)
     if not check_institution_permission(city, institution, 'can_add_employee'):
         btn_add_emp.config(state='disabled')
@@ -4150,6 +4529,7 @@ def create_institution_tab(city, institution):
         command=lambda t=tree, c=city, inst=institution: delete_members(t, c, inst)
     )
     btn_del_emp.grid(row=0, column=1, padx=8, pady=5)
+    apply_theme_button(btn_del_emp)
     # Verifică permisiuni pe instituție (granulare)
     if not check_institution_permission(city, institution, 'can_delete_employee'):
         btn_del_emp.config(state='disabled')
@@ -4160,6 +4540,7 @@ def create_institution_tab(city, institution):
         command=lambda t=tree, c=city, inst=institution: edit_member(t, c, inst)
     )
     btn_edit_emp.grid(row=0, column=2, padx=8, pady=5)
+    apply_theme_button(btn_edit_emp)
     # Verifică permisiuni pe instituție (granulare)
     if not check_institution_permission(city, institution, 'can_edit_employee'):
         btn_edit_emp.config(state='disabled')
@@ -4169,6 +4550,7 @@ def create_institution_tab(city, institution):
         command=lambda t=tree, c=city, inst=institution: punctaj_cu_selectie(t, c, inst, "add")
     )
     btn_add_points.grid(row=1, column=0, padx=8, pady=5)
+    apply_theme_button(btn_add_points)
     # Verifică permisiuni pe instituție (granulare)
     if not check_institution_permission(city, institution, 'can_add_score'):
         btn_add_points.config(state='disabled')
@@ -4178,15 +4560,17 @@ def create_institution_tab(city, institution):
         command=lambda t=tree, c=city, inst=institution: punctaj_cu_selectie(t, c, inst, "remove")
     )
     btn_remove_points.grid(row=1, column=1, padx=8, pady=5)
+    apply_theme_button(btn_remove_points)
     # Verifică permisiuni pe instituție (granulare)
     if not check_institution_permission(city, institution, 'can_add_score'):
         btn_remove_points.config(state='disabled')
 
     btn_reset_points = tk.Button(
-        btn_frame, text="🔄 Reset punctaj", width=18, bg="#FF9800", fg="white",
+        btn_frame, text="🔄 Reset punctaj", width=18,
         command=lambda t=tree, c=city, inst=institution: reset_punctaj(t, c, inst)
     )
     btn_reset_points.grid(row=1, column=2, padx=8, pady=5)
+    apply_theme_button(btn_reset_points)
     # Verifică permisiuni pe instituție (granulare)
     if not check_institution_permission(city, institution, 'can_add_score'):
         btn_reset_points.config(state='disabled')
@@ -4198,7 +4582,7 @@ def create_institution_tab(city, institution):
 
 
 def add_institution(city):
-    name = simpledialog.askstring("Instituție", f"Instituție nouă în {city}:")
+    name = themed_askstring("Instituție", f"Instituție nouă în {city}:", parent=root)
     if not name:
         return
     name = name.strip().replace(" ", "_")
@@ -4213,7 +4597,7 @@ def add_institution(city):
     win.grab_set()
     
     tk.Label(win, text="Adaugă variabile personalizate pentru instituție", font=("Segoe UI", 10, "bold")).pack(pady=10)
-    tk.Label(win, text="Variabilele RANK, ROLE și PUNCTAJ sunt deja incluse!", font=("Segoe UI", 9), fg="#2196F3").pack(pady=5)
+    tk.Label(win, text="Variabilele RANK, ROLE și PUNCTAJ sunt deja incluse!", font=("Segoe UI", 9), fg="#d4553d").pack(pady=5)
     
     # ===== RANKURI - PRIMA ALEGERE =====
     tk.Label(win, text="Configurare RANK", font=("Segoe UI", 10, "bold"), fg="#FF9800").pack(pady=10)
@@ -4317,7 +4701,7 @@ def add_institution(city):
     btn_frame = tk.Frame(win)
     btn_frame.pack(fill="x", pady=10)
     
-    tk.Button(btn_frame, text="➕ Adaugă variabilă", command=add_column, width=30, bg="#2196F3", fg="white").pack(side="left", padx=5)
+    tk.Button(btn_frame, text="➕ Adaugă variabilă", command=add_column, width=30, bg="#d4553d", fg="white").pack(side="left", padx=5)
     
     def save_structure():
         # Validează numărul de rankuri
@@ -4435,7 +4819,7 @@ def edit_institution(city):
         return
 
     old_inst = inst_nb.tab(current, "text")
-    new_inst = simpledialog.askstring("Editează instituție", "Nume nou:", initialvalue=old_inst)
+    new_inst = themed_askstring("Editează instituție", "Nume nou:", initialvalue=old_inst, parent=root)
     if not new_inst:
         return
     new_inst = new_inst.strip().replace(" ", "_")
@@ -4469,16 +4853,23 @@ def delete_institution_ui(city):
     win.geometry("400x450")
     win.grab_set()
 
-    frame_top = tk.Frame(win, bg="#ffe8e8", pady=10)
+    frame_top = tk.Frame(win, bg=THEME_COLORS["bg_dark_secondary"], pady=10)
     frame_top.pack(fill="x")
-    tk.Label(frame_top, text="Selectează instituțiile de șters", font=("Segoe UI", 10, "bold"), bg="#ffe8e8").pack(pady=5)
+    tk.Label(
+        frame_top,
+        text="Selectează instituțiile de șters",
+        font=("Segoe UI", 10, "bold"),
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["fg_light"]
+    ).pack(pady=5)
 
-    frame_list = tk.Frame(win)
+    frame_list = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     frame_list.pack(fill="both", expand=True, pady=10)
 
-    canvas = tk.Canvas(frame_list)
+    canvas = tk.Canvas(frame_list, bg=THEME_COLORS["bg_dark"], highlightthickness=0)
     scrollbar = tk.Scrollbar(frame_list, orient="vertical", command=canvas.yview)
-    scroll_frame = tk.Frame(canvas)
+    apply_theme_scrollbar(scrollbar)
+    scroll_frame = tk.Frame(canvas, bg=THEME_COLORS["bg_dark"])
     scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
     canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar.set)
@@ -4489,23 +4880,28 @@ def delete_institution_ui(city):
     for inst in sorted(trees.keys()):
         var = tk.BooleanVar(value=False)
         chk = tk.Checkbutton(scroll_frame, text=inst, variable=var, anchor="w", font=("Segoe UI", 10))
+        apply_theme_checkbutton(chk)
         chk.pack(fill="x", padx=10, pady=3)
         vars_inst.append((inst, var))
 
-    btn_frame = tk.Frame(win)
+    btn_frame = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     btn_frame.pack(pady=5)
 
     def select_all():
         for _, var in vars_inst:
             var.set(True)
 
-    tk.Button(btn_frame, text="✓ Selectează toate", command=select_all, width=18).pack(side="left", padx=5)
+    btn_select_all = tk.Button(btn_frame, text="✓ Selectează toate", command=select_all, width=18)
+    btn_select_all.pack(side="left", padx=5)
+    apply_theme_button(btn_select_all)
 
     def deselect_all():
         for _, var in vars_inst:
             var.set(False)
 
-    tk.Button(btn_frame, text="✗ Deselectează toate", command=deselect_all, width=18).pack(side="left", padx=5)
+    btn_deselect_all = tk.Button(btn_frame, text="✗ Deselectează toate", command=deselect_all, width=18)
+    btn_deselect_all.pack(side="left", padx=5)
+    apply_theme_button(btn_deselect_all, accent=False)
 
     def aplica():
         selectate = [inst for inst, var in vars_inst if var.get()]
@@ -4528,7 +4924,9 @@ def delete_institution_ui(city):
         win.destroy()
         messagebox.showinfo("Succes", "Instituțiile au fost șterse.")
 
-    tk.Button(win, text="🗑️ ȘTERGE INSTITUȚII", bg="#F44336", fg="white", font=("Segoe UI", 10, "bold"), width=25, height=2, command=aplica).pack(pady=15)
+    btn_delete_institutions = tk.Button(win, text="🗑️ ȘTERGE INSTITUȚII", width=25, height=2, command=aplica)
+    btn_delete_institutions.pack(pady=15)
+    apply_theme_button(btn_delete_institutions)
 
 
 def add_member(tree, city, institution):
@@ -4545,12 +4943,12 @@ def add_member(tree, city, institution):
     entries = {}
     
     # Creează frame cu scroll pentru entries
-    frame_main = tk.Frame(win)
+    frame_main = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     frame_main.pack(fill="both", expand=True, padx=10, pady=10)
     
-    canvas = tk.Canvas(frame_main, bg="white", highlightthickness=0)
+    canvas = tk.Canvas(frame_main, bg=THEME_COLORS["bg_dark"], highlightthickness=0)
     scrollbar = tk.Scrollbar(frame_main, orient="vertical", command=canvas.yview)
-    scroll_frame = tk.Frame(canvas, bg="white")
+    scroll_frame = tk.Frame(canvas, bg=THEME_COLORS["bg_dark"])
     
     scroll_frame.bind(
         "<Configure>",
@@ -4567,10 +4965,10 @@ def add_member(tree, city, institution):
     
     # Creează mai întâi toate entry-urile
     for i, col in enumerate(columns):
-        label_frame = tk.Frame(scroll_frame, bg="white")
+        label_frame = tk.Frame(scroll_frame, bg=THEME_COLORS["bg_dark"])
         label_frame.pack(fill="x", pady=5)
         
-        tk.Label(label_frame, text=f"{col}:", bg="white", font=("Segoe UI", 9)).pack(anchor="w", padx=10)
+        tk.Label(label_frame, text=f"{col}:", bg=THEME_COLORS["bg_dark"], fg=THEME_COLORS["fg_light"], font=("Segoe UI", 9)).pack(anchor="w", padx=10)
         
         if col == "RANK":
             # Entry pentru RANK (user intră manual numărul)
@@ -4762,14 +5160,15 @@ def delete_members(tree, city, institution):
     win.grab_set()
 
     # ---------- HEADER ----------
-    frame_top = tk.Frame(win, bg="#ffe8e8", pady=10)
+    frame_top = tk.Frame(win, bg=THEME_COLORS["bg_dark_secondary"], pady=10)
     frame_top.pack(fill="x")
 
     tk.Label(
         frame_top, 
         text="Selectează angajații pe care vrei să-i ștergi", 
         font=("Segoe UI", 10, "bold"),
-        bg="#ffe8e8"
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["fg_light"]
     ).pack(pady=5)
     
     sync_label = "☁️ Supabase" if data.get("source") == "supabase" else "📁 Local"
@@ -4777,17 +5176,18 @@ def delete_members(tree, city, institution):
         frame_top, 
         text=f"⚠️ Ștergerea va fi sincronizată imediat în cloud ({sync_label})", 
         font=("Segoe UI", 8),
-        fg="#d32f2f",
-        bg="#ffe8e8"
+        fg=THEME_COLORS["accent_red"],
+        bg=THEME_COLORS["bg_dark_secondary"]
     ).pack(pady=2)
 
     # ---------- LISTĂ CU CHECKBOX ----------
-    frame_list = tk.Frame(win)
+    frame_list = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     frame_list.pack(fill="both", expand=True, pady=10)
 
-    canvas = tk.Canvas(frame_list)
+    canvas = tk.Canvas(frame_list, bg=THEME_COLORS["bg_dark"], highlightthickness=0)
     scrollbar = tk.Scrollbar(frame_list, orient="vertical", command=canvas.yview)
-    scroll_frame = tk.Frame(canvas)
+    apply_theme_scrollbar(scrollbar)
+    scroll_frame = tk.Frame(canvas, bg=THEME_COLORS["bg_dark"])
 
     scroll_frame.bind(
         "<Configure>",
@@ -4816,6 +5216,7 @@ def delete_members(tree, city, institution):
             variable=var,
             anchor="w"
         )
+        apply_theme_checkbutton(chk)
         chk.pack(fill="x", padx=10, pady=2)
         vars_items.append((item, var))
         
@@ -4824,20 +5225,24 @@ def delete_members(tree, city, institution):
             item_to_supabase_id[item] = rows[i]["id"]
 
     # ---------- BUTOANE CONTROL ----------
-    btn_frame = tk.Frame(win)
+    btn_frame = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     btn_frame.pack(pady=5)
 
     def select_all():
         for _, var in vars_items:
             var.set(True)
 
-    tk.Button(btn_frame, text="✓ Selectează toți", command=select_all, width=18).pack(side="left", padx=5)
+    btn_select_all = tk.Button(btn_frame, text="✓ Selectează toți", command=select_all, width=18)
+    btn_select_all.pack(side="left", padx=5)
+    apply_theme_button(btn_select_all)
 
     def deselect_all():
         for _, var in vars_items:
             var.set(False)
 
-    tk.Button(btn_frame, text="✗ Deselectează toți", command=deselect_all, width=18).pack(side="left", padx=5)
+    btn_deselect_all = tk.Button(btn_frame, text="✗ Deselectează toți", command=deselect_all, width=18)
+    btn_deselect_all.pack(side="left", padx=5)
+    apply_theme_button(btn_deselect_all, accent=False)
 
     # ---------- CONFIRMARE ----------
     def aplica():
@@ -4969,16 +5374,15 @@ def delete_members(tree, city, institution):
         sort_tree_by_punctaj(tree)
         win.destroy()
 
-    tk.Button(
+    btn_delete_selected = tk.Button(
         win,
         text="🗑️ ȘTERGE SELECTAȚI",
-        bg="#F44336",
-        fg="white",
-        font=("Segoe UI", 10, "bold"),
         width=25,
         height=2,
         command=aplica
-    ).pack(pady=15)
+    )
+    btn_delete_selected.pack(pady=15)
+    apply_theme_button(btn_delete_selected)
 
 
 def edit_member(tree, city, institution):
@@ -5004,7 +5408,7 @@ def edit_member(tree, city, institution):
     win.grab_set()
 
     # ===== BARĂ SUPERIOR CU TITLU =====
-    header_frame = tk.Frame(win, bg="#1565c0", height=50)
+    header_frame = tk.Frame(win, bg="#c41e3a", height=50)
     header_frame.pack(fill="x", padx=0, pady=0)
     header_frame.pack_propagate(False)
     
@@ -5012,7 +5416,7 @@ def edit_member(tree, city, institution):
         header_frame,
         text=f"📝 Editare angajat",
         font=("Segoe UI", 12, "bold"),
-        bg="#1565c0",
+        bg="#c41e3a",
         fg="white"
     ).pack(pady=10)
 
@@ -5034,7 +5438,7 @@ def edit_member(tree, city, institution):
             entries[col] = e_rank
         
         elif col == "ROLE":
-            e = tk.Entry(main_frame, justify="center", width=30, font=("Segoe UI", 10), state="readonly", bg="#f0f0f0")
+            e = tk.Entry(main_frame, justify="center", width=30, font=("Segoe UI", 10), state="readonly", bg=THEME_COLORS["input_bg"], fg=THEME_COLORS["fg_light"])
             e.insert(0, old_values[i] if i < len(old_values) else "")
             e.pack(pady=(0, 0), ipady=6, fill="x")
             entries[col] = e
@@ -5164,7 +5568,7 @@ def edit_member(tree, city, institution):
         text="❌ ANULEAZĂ",
         command=cancel,
         font=("Segoe UI", 11, "bold"),
-        bg="#e74c3c",
+        bg="#c41e3a",
         fg="white",
         width=20,
         padx=15,
@@ -5531,33 +5935,37 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
         messagebox.showwarning("Eroare", "Nu găsesc coloana PUNCTAJ!")
         return
 
-    frame_top = tk.Frame(win, bg="#e8f4f8" if mode == "add" else "#ffe8e8", pady=10)
+    frame_top = tk.Frame(win, bg=THEME_COLORS["bg_dark_secondary"], pady=10)
     frame_top.pack(fill="x")
 
     tk.Label(
         frame_top, 
         text=f"PASUL 1: Introdu valoarea pentru {numeric_col}", 
         font=("Segoe UI", 10, "bold"),
-        bg="#e8f4f8" if mode == "add" else "#ffe8e8"
+        bg=THEME_COLORS["bg_dark_secondary"],
+        fg=THEME_COLORS["fg_light"]
     ).pack(pady=5)
 
     entry = tk.Entry(frame_top, justify="center", font=("Segoe UI", 12), width=15)
     entry.pack(pady=5)
+    apply_theme_entry(entry)
     entry.focus()
 
     tk.Label(
         win, 
         text="PASUL 2: Selectează rândurile din lista de mai jos", 
         font=("Segoe UI", 9),
-        fg="#555"
+        fg=THEME_COLORS["fg_secondary"],
+        bg=THEME_COLORS["bg_dark"]
     ).pack(pady=10)
 
-    frame_list = tk.Frame(win)
+    frame_list = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     frame_list.pack(fill="both", expand=True, pady=5)
 
-    canvas = tk.Canvas(frame_list)
+    canvas = tk.Canvas(frame_list, bg=THEME_COLORS["bg_dark"], highlightthickness=0)
     scrollbar = tk.Scrollbar(frame_list, orient="vertical", command=canvas.yview)
-    scroll_frame = tk.Frame(canvas)
+    apply_theme_scrollbar(scrollbar)
+    scroll_frame = tk.Frame(canvas, bg=THEME_COLORS["bg_dark"])
 
     scroll_frame.bind(
         "<Configure>",
@@ -5581,23 +5989,28 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
             variable=var,
             anchor="w"
         )
+        apply_theme_checkbutton(chk)
         chk.pack(fill="x", padx=10, pady=2)
         vars_items.append((item, var))
 
-    btn_frame = tk.Frame(win)
+    btn_frame = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
     btn_frame.pack(pady=5)
 
     def select_all():
         for _, var in vars_items:
             var.set(True)
 
-    tk.Button(btn_frame, text="✓ Selectează toate", command=select_all, width=18).pack(side="left", padx=5)
+    btn_select_all = tk.Button(btn_frame, text="✓ Selectează toate", command=select_all, width=18)
+    btn_select_all.pack(side="left", padx=5)
+    apply_theme_button(btn_select_all)
 
     def deselect_all():
         for _, var in vars_items:
             var.set(False)
 
-    tk.Button(btn_frame, text="✗ Deselectează toate", command=deselect_all, width=18).pack(side="left", padx=5)
+    btn_deselect_all = tk.Button(btn_frame, text="✗ Deselectează toate", command=deselect_all, width=18)
+    btn_deselect_all.pack(side="left", padx=5)
+    apply_theme_button(btn_deselect_all, accent=False)
 
     def aplica():
         try:
@@ -5774,32 +6187,35 @@ def on_cloud_sync_required(cloud_version, local_version):
     ).pack()
     
     # Content
-    content = tk.Frame(sync_notification_window, bg="white")
+    content = tk.Frame(sync_notification_window, bg=THEME_COLORS["bg_dark"])
     content.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
     
     tk.Label(
         content,
         text="⚠️ Aplicația este BLOCATĂ.",
         font=("Segoe UI", 11, "bold"),
-        bg="white"
+        bg=THEME_COLORS["bg_dark"],
+        fg=THEME_COLORS["accent_orange"]
     ).pack(pady=5)
     
     tk.Label(
         content,
         text="Trebuie să descarci modificările din cloud pentru a continua.",
         font=("Segoe UI", 10),
-        bg="white"
+        bg=THEME_COLORS["bg_dark"],
+        fg=THEME_COLORS["fg_light"]
     ).pack(pady=5)
     
     tk.Label(
         content,
         text="Apasă butonul de mai jos pentru a descărca.",
         font=("Segoe UI", 10),
-        bg="white"
+        bg=THEME_COLORS["bg_dark"],
+        fg=THEME_COLORS["fg_light"]
     ).pack(pady=5)
     
     # Progress label
-    progress_label = tk.Label(content, text="", font=("Segoe UI", 9), fg="#666", bg="white")
+    progress_label = tk.Label(content, text="", font=("Segoe UI", 9), fg=THEME_COLORS["fg_secondary"], bg=THEME_COLORS["bg_dark"])
     progress_label.pack(pady=10)
     
     # Download button (ONLY button available)
@@ -5840,7 +6256,7 @@ def on_cloud_sync_required(cloud_version, local_version):
         content,
         text="📥 DESCARCĂ SINCRONIZARE",
         font=("Segoe UI", 11, "bold"),
-        bg="#2196F3",
+        bg="#d4553d",
         fg="white",
         command=do_download,
         relief=tk.FLAT,
@@ -6289,5 +6705,8 @@ initialize_cloud_sync()
 
 # Încarcă orașele după sincronizare și după ce Discord section e actualizat
 root.after(1000, load_existing_tables)
+
+# Aplică tema RDR pe toți widget-urile
+root.after(500, lambda: apply_theme_to_children(root))
 
 root.mainloop()
