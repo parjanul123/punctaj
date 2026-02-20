@@ -18,28 +18,28 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-20 21:47:23",
+    "last_punctaj_update": "2026-02-20 21:48:13",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
     "rows": [
-        {
-            "DISCORD": "Ion.policarpov",
-            "NUME IC": "Ion-Cucu",
-            "SERIE DE BULETIN": "W26G69Z92",
-            "RANK": "2",
-            "ROLE": "Caporal",
-            "PUNCTAJ": "36",
-            "ULTIMA_MOD": "2026-02-20 21:45:48"
-        },
         {
             "DISCORD": "Cristofor Columb",
             "NUME IC": "Cristofor Columb",
             "SERIE DE BULETIN": "S79A64B71",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "39",
-            "ULTIMA_MOD": "2026-02-20 21:47:23"
+            "PUNCTAJ": "44",
+            "ULTIMA_MOD": "2026-02-20 21:48:13"
+        },
+        {
+            "DISCORD": "Ion.policarpov",
+            "NUME IC": "Ion-Cucu",
+            "SERIE DE BULETIN": "W26G69Z92",
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": "41",
+            "ULTIMA_MOD": "2026-02-20 21:48:13"
         },
         {
             "DISCORD": "Parjanu",
@@ -47,8 +47,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "27",
-            "ULTIMA_MOD": "2026-02-20 21:41:05"
+            "PUNCTAJ": "32",
+            "ULTIMA_MOD": "2026-02-20 21:48:13"
         },
         {
             "DISCORD": "Sintact",
@@ -56,8 +56,17 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "24",
-            "ULTIMA_MOD": "2026-02-20 21:47:23"
+            "PUNCTAJ": "29",
+            "ULTIMA_MOD": "2026-02-20 21:48:13"
+        },
+        {
+            "DISCORD": "nikolas",
+            "NUME IC": "Ion Clanparu",
+            "SERIE DE BULETIN": "V70S69S35",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "21",
+            "ULTIMA_MOD": "2026-02-20 21:48:13"
         },
         {
             "DISCORD": "Fane Manevra",
@@ -67,15 +76,6 @@
             "ROLE": "Offiter",
             "PUNCTAJ": "14",
             "ULTIMA_MOD": "2026-02-20 21:37:41"
-        },
-        {
-            "DISCORD": "nikolas",
-            "NUME IC": "Ion Clanparu",
-            "SERIE DE BULETIN": "V70S69S35",
-            "RANK": "1",
-            "ROLE": "Offiter",
-            "PUNCTAJ": "16",
-            "ULTIMA_MOD": "2026-02-20 21:47:23"
         },
         {
             "DISCORD": "Arian",
