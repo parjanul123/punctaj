@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-20 21:41:05",
+    "last_punctaj_update": "2026-02-20 21:44:58",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -85,6 +85,15 @@
             "ROLE": "Plutonier",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-18 18:13:47"
+        },
+        {
+            "DISCORD": "nikolas",
+            "NUME IC": "Ion Clanparu",
+            "SERIE DE BULETIN": "V70S69S35",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-20 21:44:58"
         }
     ]
 }
