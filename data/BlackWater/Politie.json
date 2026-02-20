@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-20 21:39:55",
+    "last_punctaj_update": "2026-02-20 21:41:05",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -33,13 +33,22 @@
             "ULTIMA_MOD": "2026-02-20 21:39:55"
         },
         {
+            "DISCORD": "Ion.policarpov",
+            "NUME IC": "Ion-Cucu",
+            "SERIE DE BULETIN": "W26G69Z92",
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": "28",
+            "ULTIMA_MOD": "2026-02-20 21:41:05"
+        },
+        {
             "DISCORD": "Parjanu",
             "NUME IC": "Dandeny Munoz",
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "22",
-            "ULTIMA_MOD": "2026-02-20 21:39:14"
+            "PUNCTAJ": "27",
+            "ULTIMA_MOD": "2026-02-20 21:41:05"
         },
         {
             "DISCORD": "Sintact",
@@ -49,15 +58,6 @@
             "ROLE": "Locotenent Instructor",
             "PUNCTAJ": "16",
             "ULTIMA_MOD": "2026-02-20 21:39:14"
-        },
-        {
-            "DISCORD": "Ion.policarpov",
-            "NUME IC": "Ion-Cucu",
-            "SERIE DE BULETIN": "W26G69Z92",
-            "RANK": "2",
-            "ROLE": "Caporal",
-            "PUNCTAJ": "23",
-            "ULTIMA_MOD": "2026-02-20 21:39:55"
         },
         {
             "DISCORD": "Fane Manevra",
