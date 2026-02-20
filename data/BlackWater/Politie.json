@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-20 21:44:58",
+    "last_punctaj_update": "2026-02-20 21:45:48",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -38,8 +38,8 @@
             "SERIE DE BULETIN": "W26G69Z92",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "28",
-            "ULTIMA_MOD": "2026-02-20 21:41:05"
+            "PUNCTAJ": "36",
+            "ULTIMA_MOD": "2026-02-20 21:45:48"
         },
         {
             "DISCORD": "Parjanu",
@@ -92,8 +92,8 @@
             "SERIE DE BULETIN": "V70S69S35",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-20 21:44:58"
+            "PUNCTAJ": "8",
+            "ULTIMA_MOD": "2026-02-20 21:45:48"
         }
     ]
 }
