@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-20 21:32:00",
+    "last_punctaj_update": "2026-02-20 21:32:50",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -29,8 +29,8 @@
             "SERIE DE BULETIN": "S79A64B71",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "6",
-            "ULTIMA_MOD": "2026-02-20 21:32:00"
+            "PUNCTAJ": "9",
+            "ULTIMA_MOD": "2026-02-20 21:32:50"
         },
         {
             "DISCORD": "Parjanu",
@@ -92,8 +92,8 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-18 18:13:47"
+            "PUNCTAJ": "3",
+            "ULTIMA_MOD": "2026-02-20 21:32:50"
         }
     ]
 }
