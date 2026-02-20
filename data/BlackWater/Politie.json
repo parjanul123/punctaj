@@ -60,6 +60,15 @@
             "ULTIMA_MOD": "2026-02-20 21:34:20"
         },
         {
+            "DISCORD": "Ion.policarpov",
+            "NUME IC": "Ion-Cucu",
+            "SERIE DE BULETIN": "W26G69Z92",
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": "3",
+            "ULTIMA_MOD": "2026-02-20 21:34:20"
+        },
+        {
             "DISCORD": "Arian",
             "NUME IC": "Bill-MCnue",
             "SERIE DE BULETIN": "M78Y78Y14",
@@ -76,24 +85,6 @@
             "ROLE": "Plutonier",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-02-18 18:13:47"
-        },
-        {
-            "DISCORD": "Pelicanu",
-            "NUME IC": "Cindea Geani",
-            "SERIE DE BULETIN": "T97C56S78",
-            "RANK": "6",
-            "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-02-20 21:34:20"
-        },
-        {
-            "DISCORD": "Ion.policarpov",
-            "NUME IC": "Ion-Cucu",
-            "SERIE DE BULETIN": "W26G69Z92",
-            "RANK": "2",
-            "ROLE": "Caporal",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-02-20 21:34:20"
         }
     ]
 }
