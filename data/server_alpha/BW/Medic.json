@@ -17,20 +17,5 @@
     "pending_sync": false,
     "city_id": 12,
     "institution_id": 9,
-    "rows": [
-        {
-            "DISCORD": "Rosa",
-            "RANK": "2",
-            "ROLE": "Admin",
-            "PUNCTAJ": "6",
-            "ULTIMA_MOD": "2026-02-22 16:28:38"
-        },
-        {
-            "DISCORD": "r",
-            "RANK": "1",
-            "ROLE": "User",
-            "PUNCTAJ": "2",
-            "ULTIMA_MOD": "2026-02-22 16:28:38"
-        }
-    ]
+    "rows": []
 }
