@@ -11,7 +11,7 @@
         "2": "Admin"
     },
     "rankuri_desc": "Rank 1: User\nRank 2: Admin",
-    "last_punctaj_update": "2026-02-22 16:25:06",
+    "last_punctaj_update": "2026-02-22 16:25:32",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
@@ -22,8 +22,8 @@
             "ROSA": "Rosa",
             "RANK": "2",
             "ROLE": "Admin",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-02-22 16:25:06"
+            "PUNCTAJ": "4",
+            "ULTIMA_MOD": "2026-02-22 16:25:32"
         }
     ]
 }
