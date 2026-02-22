@@ -16,17 +16,19 @@
         "7": "Sheriff"
     },
     "rankuri_desc": "Rank 1: Offiter\nRank 2: Caporal\nRank 3: Sergent\nRank 4: Plutonier\nRank 5: Locotenent\nRank 6: Sheriff Adjunct\nRank 7: Sheriff",
-    "last_punctaj_update": "2026-02-22 15:53:57",
+    "last_punctaj_update": "2026-02-22 16:01:06",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
+    "city_id": 11,
+    "institution_id": 7,
     "rows": [
         {
             "DISCORD": "fnk",
             "RANK": "7",
             "ROLE": "Sheriff",
-            "PUNCTAJ": "4",
-            "ULTIMA_MOD": "2026-02-22 15:53:57"
+            "PUNCTAJ": "12",
+            "ULTIMA_MOD": "2026-02-22 16:01:06"
         }
     ]
 }
