@@ -1,0 +1,29 @@
+{
+    "columns": [
+        "ROSA",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "ranks": {
+        "1": "User",
+        "2": "Admin"
+    },
+    "rankuri_desc": "Rank 1: User\nRank 2: Admin",
+    "last_punctaj_update": "2026-02-22 16:25:06",
+    "version": 1,
+    "last_synced": null,
+    "pending_sync": false,
+    "city_id": 12,
+    "institution_id": 8,
+    "rows": [
+        {
+            "ROSA": "Rosa",
+            "RANK": "2",
+            "ROLE": "Admin",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-02-22 16:25:06"
+        }
+    ]
+}
