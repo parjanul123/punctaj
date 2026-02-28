@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-28 13:03:14",
+    "last_punctaj_update": "2026-02-28 13:04:03",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -31,8 +31,8 @@
             "SERIE DE BULETIN": "V70S69S35",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "32",
-            "ULTIMA_MOD": "2026-02-28 13:03:14"
+            "PUNCTAJ": "35",
+            "ULTIMA_MOD": "2026-02-28 13:04:03"
         },
         {
             "DISCORD": "Parjanu",
@@ -58,7 +58,16 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "21",
+            "PUNCTAJ": "24",
+            "ULTIMA_MOD": "2026-02-28 13:04:03"
+        },
+        {
+            "DISCORD": "Aly Baba",
+            "NUME IC": "Aly Baba",
+            "SERIE DE BULETIN": "I60F89C81",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "13",
             "ULTIMA_MOD": "2026-02-28 13:03:14"
         },
         {
@@ -69,15 +78,6 @@
             "ROLE": "Sergent",
             "PUNCTAJ": "11",
             "ULTIMA_MOD": "2026-02-28 12:58:21"
-        },
-        {
-            "DISCORD": "Aly Baba",
-            "NUME IC": "Aly Baba",
-            "SERIE DE BULETIN": "I60F89C81",
-            "RANK": "1",
-            "ROLE": "Offiter",
-            "PUNCTAJ": "13",
-            "ULTIMA_MOD": "2026-02-28 13:03:14"
         },
         {
             "DISCORD": "tucurel",
