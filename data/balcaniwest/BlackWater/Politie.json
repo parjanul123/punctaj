@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-28 13:06:52",
+    "last_punctaj_update": "2026-02-28 13:09:23",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -62,15 +62,6 @@
             "ULTIMA_MOD": "2026-02-28 13:05:54"
         },
         {
-            "DISCORD": "Aly Baba",
-            "NUME IC": "Aly Baba",
-            "SERIE DE BULETIN": "I60F89C81",
-            "RANK": "1",
-            "ROLE": "Offiter",
-            "PUNCTAJ": "18",
-            "ULTIMA_MOD": "2026-02-28 13:05:04"
-        },
-        {
             "DISCORD": "Ion.policarpov",
             "NUME IC": "Ion-Cucu",
             "SERIE DE BULETIN": "W26G69Z92",
@@ -78,6 +69,15 @@
             "ROLE": "Sergent",
             "PUNCTAJ": "21",
             "ULTIMA_MOD": "2026-02-28 13:06:52"
+        },
+        {
+            "DISCORD": "Aly Baba",
+            "NUME IC": "Aly Baba",
+            "SERIE DE BULETIN": "I60F89C81",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "18",
+            "ULTIMA_MOD": "2026-02-28 13:05:04"
         },
         {
             "DISCORD": "tucurel",
@@ -94,8 +94,8 @@
             "SERIE DE BULETIN": "K83I84P85",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-28 13:06:52"
+            "PUNCTAJ": "11",
+            "ULTIMA_MOD": "2026-02-28 13:09:23"
         }
     ]
 }
