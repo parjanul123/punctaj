@@ -18,13 +18,22 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-28 13:05:04",
+    "last_punctaj_update": "2026-02-28 13:05:54",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
     "city_id": 5,
     "institution_id": 1,
     "rows": [
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": "39",
+            "ULTIMA_MOD": "2026-02-28 13:05:54"
+        },
         {
             "DISCORD": "nikolas",
             "NUME IC": "Ion Clanparu",
@@ -35,22 +44,13 @@
             "ULTIMA_MOD": "2026-02-28 13:04:03"
         },
         {
-            "DISCORD": "Parjanu",
-            "NUME IC": "Dandeny Munoz",
-            "SERIE DE BULETIN": "R87G65U68",
-            "RANK": "5",
-            "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "37",
-            "ULTIMA_MOD": "2026-02-28 13:05:04"
-        },
-        {
             "DISCORD": "Cristofor Columb",
             "NUME IC": "Cristofor Columb",
             "SERIE DE BULETIN": "S79A64B71",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "32",
-            "ULTIMA_MOD": "2026-02-28 13:05:04"
+            "PUNCTAJ": "34",
+            "ULTIMA_MOD": "2026-02-28 13:05:54"
         },
         {
             "DISCORD": "Sintact",
@@ -58,8 +58,8 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "29",
-            "ULTIMA_MOD": "2026-02-28 13:05:04"
+            "PUNCTAJ": "31",
+            "ULTIMA_MOD": "2026-02-28 13:05:54"
         },
         {
             "DISCORD": "Aly Baba",
