@@ -18,22 +18,13 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-28 13:01:02",
+    "last_punctaj_update": "2026-02-28 13:01:45",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
     "city_id": 5,
     "institution_id": 1,
     "rows": [
-        {
-            "DISCORD": "Parjanu",
-            "NUME IC": "Dandeny Munoz",
-            "SERIE DE BULETIN": "R87G65U68",
-            "RANK": "5",
-            "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "24",
-            "ULTIMA_MOD": "2026-02-28 13:00:10"
-        },
         {
             "DISCORD": "nikolas",
             "NUME IC": "Ion Clanparu",
@@ -42,6 +33,15 @@
             "ROLE": "Caporal",
             "PUNCTAJ": "27",
             "ULTIMA_MOD": "2026-02-28 13:01:02"
+        },
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": "27",
+            "ULTIMA_MOD": "2026-02-28 13:01:45"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -85,8 +85,8 @@
             "SERIE DE BULETIN": "I42I66B26",
             "RANK": "3",
             "ROLE": "Sergent",
-            "PUNCTAJ": "1",
-            "ULTIMA_MOD": "2026-02-28 13:00:10"
+            "PUNCTAJ": "4",
+            "ULTIMA_MOD": "2026-02-28 13:01:45"
         },
         {
             "DISCORD": "RemusKTMS",
