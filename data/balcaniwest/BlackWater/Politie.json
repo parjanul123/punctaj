@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-28 12:54:57",
+    "last_punctaj_update": "2026-02-28 12:55:39",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -31,8 +31,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "4",
             "ROLE": "Plutonier",
-            "PUNCTAJ": "19",
-            "ULTIMA_MOD": "2026-02-28 12:54:57"
+            "PUNCTAJ": "20",
+            "ULTIMA_MOD": "2026-02-28 12:55:39"
         },
         {
             "DISCORD": "nikolas",
@@ -40,8 +40,26 @@
             "SERIE DE BULETIN": "V70S69S35",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "18",
-            "ULTIMA_MOD": "2026-02-28 12:54:57"
+            "PUNCTAJ": "19",
+            "ULTIMA_MOD": "2026-02-28 12:55:39"
+        },
+        {
+            "DISCORD": "Cristofor Columb",
+            "NUME IC": "Cristofor Columb",
+            "SERIE DE BULETIN": "S79A64B71",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": "14",
+            "ULTIMA_MOD": "2026-02-28 12:55:39"
+        },
+        {
+            "DISCORD": "Sintact",
+            "NUME IC": "Jay Rocky",
+            "SERIE DE BULETIN": "J82B48Z62",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": "11",
+            "ULTIMA_MOD": "2026-02-28 12:55:39"
         },
         {
             "DISCORD": "Ion.policarpov",
@@ -51,24 +69,6 @@
             "ROLE": "Sergent",
             "PUNCTAJ": "8",
             "ULTIMA_MOD": "2026-02-28 12:52:48"
-        },
-        {
-            "DISCORD": "Cristofor Columb",
-            "NUME IC": "Cristofor Columb",
-            "SERIE DE BULETIN": "S79A64B71",
-            "RANK": "7",
-            "ROLE": "Sherif",
-            "PUNCTAJ": "13",
-            "ULTIMA_MOD": "2026-02-28 12:54:57"
-        },
-        {
-            "DISCORD": "Sintact",
-            "NUME IC": "Jay Rocky",
-            "SERIE DE BULETIN": "J82B48Z62",
-            "RANK": "5",
-            "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-28 12:54:57"
         },
         {
             "DISCORD": "Aly Baba",
