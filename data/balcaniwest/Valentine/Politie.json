@@ -18,7 +18,7 @@
         "7": "Sheriff"
     },
     "rankuri_desc": "Rank 1: Offiter\nRank 2: Caporal\nRank 3: Sergent\nRank 4: Plutonier\nRank 5: Locotenent\nRank 6: Sheriff Adjunct\nRank 7: Sheriff",
-    "last_punctaj_update": "2026-02-22 17:01:03",
+    "last_punctaj_update": "2026-03-01 18:00:49",
     "version": 1,
     "last_synced": null,
     "pending_sync": false,
@@ -29,10 +29,10 @@
             "DISCORD": "vlp",
             "NUME IC": "Vulpe Fuchs",
             "SERIE DE BULETIN": "Y37I61A62",
-            "RANK": "7",
-            "ROLE": "Sheriff",
-            "PUNCTAJ": "77",
-            "ULTIMA_MOD": "2026-02-22 17:01:03"
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-03-01 18:00:49"
         }
     ]
 }
