@@ -185,10 +185,10 @@ class UsersPermissionsJsonManager:
         print(f"\n📥 Downloading users from Supabase...")
         
         try:
-            # Fetch all users with their granular permissions
+            # Fetch all users (permissions are kept locally in JSON)
             url = f"{self.supabase_url}/rest/v1/discord_users"
             params = {
-                "select": "discord_id,username,is_superuser,is_admin,granular_permissions,created_at,updated_at",
+                "select": "discord_id,username,is_superuser,is_admin,created_at,updated_at",
             }
             
             response = requests.get(url, headers=self.headers, params=params, timeout=10)
@@ -208,15 +208,7 @@ class UsersPermissionsJsonManager:
                 if not discord_id:
                     continue
                 
-                # Parse granular permissions
-                perms_str = user.get('granular_permissions', '{}')
-                if isinstance(perms_str, str):
-                    try:
-                        perms = json.loads(perms_str) if perms_str else {}
-                    except json.JSONDecodeError:
-                        perms = {}
-                else:
-                    perms = perms_str if isinstance(perms_str, dict) else {}
+                perms = {}
                 
                 json_users[str(discord_id)] = {
                     "discord_id": discord_id,
@@ -272,7 +264,6 @@ class UsersPermissionsJsonManager:
                     params = {"discord_id": f"eq.{discord_id}"}
                     
                     update_data = {
-                        "granular_permissions": json.dumps(permissions),
                         "updated_at": datetime.now().isoformat(),
                     }
                     
@@ -384,7 +375,6 @@ class UsersPermissionsJsonManager:
                 update_data = {
                     "discord_username": username,
                     "is_admin": is_admin,
-                    "granular_permissions": json.dumps(self.default_permissions_template),
                     "updated_at": datetime.now().isoformat(),
                 }
                 
@@ -401,7 +391,6 @@ class UsersPermissionsJsonManager:
                     "discord_id": discord_id,
                     "discord_username": username,
                     "is_admin": is_admin,
-                    "granular_permissions": json.dumps(self.default_permissions_template),
                     "created_at": datetime.now().isoformat(),
                     "updated_at": datetime.now().isoformat(),
                 }

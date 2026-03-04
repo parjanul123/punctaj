@@ -201,7 +201,7 @@ class MultiDeviceSyncManager:
             # Query: Get all users with permissions
             url = f"{self.supabase_url}/rest/v1/discord_users"
             params = {
-                "select": "discord_id,username,is_superuser,is_admin,granular_permissions,created_at,updated_at"
+                "select": "discord_id,username,is_superuser,is_admin,created_at,updated_at"
             }
             
             response = requests.get(url, headers=self.headers, params=params, timeout=30)
@@ -228,15 +228,7 @@ class MultiDeviceSyncManager:
                 if not discord_id:
                     continue
                 
-                # Parse permissions
-                perms_str = user.get('granular_permissions', '{}')
-                if isinstance(perms_str, str):
-                    try:
-                        perms = json.loads(perms_str) if perms_str else {}
-                    except:
-                        perms = {}
-                else:
-                    perms = perms_str if isinstance(perms_str, dict) else {}
+                perms = {}
                 
                 json_data["users"][discord_id] = {
                     "discord_id": user.get('discord_id'),

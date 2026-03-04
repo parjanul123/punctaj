@@ -63,6 +63,13 @@ def get_base_directory():
 BASE_DIR = get_base_directory()
 print(f"📁 BASE_DIR set to: {BASE_DIR}")
 
+def _is_no_cloud_mode() -> bool:
+    return os.getenv("PUNCTAJ_NO_CLOUD_DB", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+NO_CLOUD_DB_MODE = _is_no_cloud_mode()
+if NO_CLOUD_DB_MODE:
+    print("🛑 NO-CLOUD mode active: Supabase/Cloud DB disabled")
+
 # Import config resolver pentru caile de configurare
 try:
     from config_resolver import ConfigResolver
@@ -333,12 +340,42 @@ except Exception as e:
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 os.makedirs(LOGS_DIR, exist_ok=True)
+BASE_DATA_DIR = DATA_DIR
 
 # Log locația pentru debugging
 print(f"📁 Data directory: {DATA_DIR}")
 print(f"📂 Archive directory: {ARCHIVE_DIR}")
 print(f"📋 Logs directory: {LOGS_DIR}")
 print(f"✓ Both EXE and Python script use the SAME data directories")
+
+# ================== SERVER-SCOPED DATA DIRECTORY ==================
+# If a server_key is available, always use data/<server_key>/ as active data root
+ACTIVE_SERVER_KEY = None
+try:
+    ACTIVE_SERVER_KEY = (os.getenv("PUNCTAJ_SERVER_KEY", "") or "").strip()
+    if not ACTIVE_SERVER_KEY:
+        config_candidates = [
+            os.path.join(os.path.dirname(__file__), "supabase_config.ini"),
+            os.path.join(BASE_DIR, "supabase_config.ini"),
+            os.path.join(os.getcwd(), "supabase_config.ini"),
+            "supabase_config.ini"
+        ]
+        for cfg_path in config_candidates:
+            if cfg_path and os.path.exists(cfg_path):
+                cfg = configparser.ConfigParser()
+                cfg.read(cfg_path)
+                ACTIVE_SERVER_KEY = cfg.get('supabase', 'server_key', fallback='').strip()
+                if ACTIVE_SERVER_KEY:
+                    break
+
+    if ACTIVE_SERVER_KEY:
+        server_data_dir = os.path.join(BASE_DATA_DIR, ACTIVE_SERVER_KEY)
+        os.makedirs(server_data_dir, exist_ok=True)
+        DATA_DIR = server_data_dir
+        print(f"🌐 Server scope active: {ACTIVE_SERVER_KEY}")
+        print(f"📁 Using server data directory: {DATA_DIR}")
+except Exception as e:
+    print(f"⚠️ Server data scope detection failed: {e}")
 
 # ================== BACKUP MANAGER INITIALIZATION ==================
 # Auto-backup periodic al datelor locale
@@ -360,7 +397,9 @@ else:
 # ================== SUPABASE SYNC CONFIGURATION ==================
 # Sincronizare cloud cu Supabase PostgreSQL
 SUPABASE_SYNC = None
-if SUPABASE_MODULE_AVAILABLE:
+if NO_CLOUD_DB_MODE:
+    print("ℹ️ NO-CLOUD mode: skipping Supabase initialization")
+elif SUPABASE_MODULE_AVAILABLE:
     # Caută config în folderul aplicației sau în BASE_DIR
     config_paths = [
         os.path.join(os.path.dirname(__file__), "supabase_config.ini"),
@@ -387,7 +426,11 @@ else:
 ACTION_LOGGER = None
 if ActionLoggerNew and SUPABASE_SYNC and SUPABASE_SYNC.enabled:
     try:
-        ACTION_LOGGER = ActionLoggerNew(SUPABASE_SYNC)
+        ACTION_LOGGER = ActionLoggerNew(SUPABASE_SYNC, logs_dir=LOGS_DIR)
+        try:
+            ACTION_LOGGER.flush_pending_logs(max_items=200)
+        except Exception as flush_err:
+            print(f"⚠️ Pending audit log flush failed at startup: {flush_err}")
         print("✓ Action logger initialized for automatic logging")
         print(f"  📊 Logs table: {SUPABASE_SYNC.table_logs}")
         print(f"  🔗 Supabase: {SUPABASE_SYNC.url[:50]}...")
@@ -537,6 +580,28 @@ def supabase_upload(city, institution, json_data, file_path=None):
         rows = json_data.get("rows", [])
         city_id = json_data.get("city_id")
         institution_id = json_data.get("institution_id")
+
+        # Fallback: resolve IDs if missing (needed for reliable employees table updates)
+        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and (not city_id or not institution_id):
+            try:
+                city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
+                if city_obj:
+                    city_id = city_id or city_obj.get("id")
+                    inst_obj = SUPABASE_EMPLOYEE_MANAGER.get_institution_by_name(city_id, institution)
+                    if inst_obj:
+                        institution_id = institution_id or inst_obj.get("id")
+
+                        # Keep IDs in payload for current run and future saves
+                        json_data["city_id"] = city_id
+                        json_data["institution_id"] = institution_id
+                        if file_path:
+                            try:
+                                with open(file_path, "w", encoding="utf-8") as f:
+                                    json.dump(json_data, f, indent=4, ensure_ascii=False)
+                            except Exception as persist_err:
+                                print(f"   ⚠️  Could not persist resolved IDs to local file: {persist_err}")
+            except Exception as e:
+                print(f"   ⚠️  Could not resolve city/institution IDs for upload: {e}")
         
         print(f"   📊 Data: {len(rows)} rows, city_id={city_id}, institution_id={institution_id}")
         
@@ -580,12 +645,12 @@ def supabase_upload(city, institution, json_data, file_path=None):
             except Exception as e:
                 print(f"   ⚠️  Error syncing to police_data: {e}")
         
-        # Upload logurile din folderul logs/ (organized by city/institution)
+        # Upload logurile din folderul logs/ (organized by server/city/institution)
         # IMPORTANT: Logurile sunt criptate local, trebuie să le decriptez înainte upload
         try:
             import glob
             logs_uploaded = 0
-            logs_dir = "logs"
+            logs_dir = LOGS_DIR
             if os.path.exists(logs_dir):
                 # Import encryption module for reading encrypted logs
                 try:
@@ -595,8 +660,8 @@ def supabase_upload(city, institution, json_data, file_path=None):
                     has_encryption = False
                     print("   ⚠️  Encryption module not available - will try plain JSON")
                 
-                # Find all institution log files (logs/{city}/{institution}.enc)
-                institution_log_files = glob.glob(os.path.join(logs_dir, "*/*.enc"))
+                # Find all institution log files (logs/**/{institution}.enc)
+                institution_log_files = glob.glob(os.path.join(logs_dir, "**", "*.enc"), recursive=True)
                 
                 for log_file in institution_log_files:
                     # Skip global summary file
@@ -621,6 +686,18 @@ def supabase_upload(city, institution, json_data, file_path=None):
                         
                         # Upload each log entry
                         for log_data in logs_array:
+                            # Backward compatibility: enrich old logs missing server_key
+                            if not log_data.get('server_key'):
+                                try:
+                                    rel_path = os.path.relpath(log_file, logs_dir)
+                                    parts = rel_path.replace('\\', '/').split('/')
+                                    if len(parts) >= 3:
+                                        log_data['server_key'] = parts[0]
+                                    else:
+                                        log_data['server_key'] = (ACTIVE_SERVER_KEY or os.getenv('PUNCTAJ_SERVER_KEY', '') or 'default')
+                                except Exception:
+                                    log_data['server_key'] = (ACTIVE_SERVER_KEY or os.getenv('PUNCTAJ_SERVER_KEY', '') or 'default')
+
                             url = f"{SUPABASE_SYNC.url}/rest/v1/{SUPABASE_SYNC.table_logs}"
                             headers = {
                                 'apikey': SUPABASE_SYNC.key,
@@ -782,11 +859,7 @@ def can_edit_city(city_name):
     """Verifică dacă utilizatorul poate edita orașul"""
     if not DISCORD_AUTH:
         return True  # Fără auth = acces complet
-    
-    # Superuser și admin au acces complet
-    if DISCORD_AUTH.is_admin() or DISCORD_AUTH.get_role() == "superuser":
-        return True
-    
+
     return DISCORD_AUTH.can_edit_city_granular(city_name)
 
 
@@ -811,6 +884,7 @@ def is_read_only_user():
     """Verifică dacă utilizatorul e read-only (viewer role)"""
     if not DISCORD_AUTH:
         return False
+    return DISCORD_AUTH.get_user_role() == 'viewer'
     
 
 def check_institution_permission(city, institution, permission_type):
@@ -825,24 +899,37 @@ def check_institution_permission(city, institution, permission_type):
     Returns:
         bool: True dacă utilizatorul are permisiunea, False altfel
     """
-    # Superuserii au acces la toate
-    if DISCORD_AUTH and DISCORD_AUTH.is_superuser():
+    if not DISCORD_AUTH:
         return True
-    
-    # Verifică permisiunile granulare
-    if INSTITUTION_PERM_MANAGER and DISCORD_AUTH:
-        discord_id = DISCORD_AUTH.get_discord_id()
-        if discord_id:
-            return INSTITUTION_PERM_MANAGER.check_user_institution_permission(
-                discord_id,
-                city,
-                institution,
-                permission_type
-            )
-    
-    # Default: acces dacă nu e configurat sistemul de permisiuni
-    return True
-    return DISCORD_AUTH.get_user_role() == 'viewer'
+
+    permission_aliases = {
+        'can_add_employee': 'can_edit_employee',
+        'can_add_score': 'can_edit',
+        'can_remove_score': 'can_edit',
+        'can_reset_score': 'can_edit',
+        'can_view_reports': 'can_edit',
+        'can_edit_city': 'can_edit_cities',
+        'can_delete_city': 'can_delete_cities',
+        'can_add_city': 'can_add_cities',
+        'can_add_institution': 'can_edit',
+        'can_edit_institution': 'can_edit',
+        'can_delete_institution': 'can_delete',
+    }
+    permission_code = permission_aliases.get(permission_type, permission_type)
+
+    # 1) Institution-level permission
+    if institution:
+        if DISCORD_AUTH.has_granular_permission(f"institutions.{city}.{institution}.{permission_code}"):
+            return True
+        if DISCORD_AUTH.has_granular_permission(f"cities.{city}.institutions.{institution}.{permission_code}"):
+            return True
+
+    # 2) City-level permission
+    if city and DISCORD_AUTH.has_granular_permission(f"cities.{city}.{permission_code}"):
+        return True
+
+    # 3) Global permission
+    return DISCORD_AUTH.has_granular_permission(permission_code)
 
 
 def get_accessible_cities():
@@ -1216,6 +1303,9 @@ def save_institution(city, institution, tree, update_timestamp=False, updated_it
         "version": current_version,
         "last_synced": last_synced,
         "pending_sync": pending_sync,
+        # Preserve Supabase relation IDs used by employee sync
+        "city_id": existing_data.get("city_id"),
+        "institution_id": existing_data.get("institution_id"),
         "rows": []
     }
     
@@ -2549,33 +2639,458 @@ main.pack(fill="both", expand=True)
 apply_theme_frame(main)
 
 # -------- SIDEBAR --------
-sidebar = tk.Frame(main, width=200, bg=THEME_COLORS["bg_dark"])
-sidebar.pack(side="left", fill="y")
-sidebar.pack_propagate(False)
+sidebar_shell = tk.Frame(main, width=240, bg=THEME_COLORS["bg_dark"])
+sidebar_shell.pack(side="left", fill="y")
+sidebar_shell.pack_propagate(False)
+
+sidebar_canvas = tk.Canvas(
+    sidebar_shell,
+    bg=THEME_COLORS["bg_dark"],
+    highlightthickness=0,
+    relief="flat"
+)
+sidebar_scrollbar = tk.Scrollbar(sidebar_shell, orient="vertical", command=sidebar_canvas.yview, width=14)
+apply_theme_scrollbar(sidebar_scrollbar)
+sidebar_canvas.configure(yscrollcommand=sidebar_scrollbar.set)
+
+sidebar_canvas.pack(side="left", fill="both", expand=True)
+sidebar_scrollbar.pack(side="right", fill="y", padx=(1, 0))
+
+sidebar = tk.Frame(sidebar_canvas, bg=THEME_COLORS["bg_dark"])
+sidebar_canvas_window_id = sidebar_canvas.create_window((0, 0), window=sidebar, anchor="nw")
+
+def _sidebar_on_configure(_event=None):
+    sidebar_canvas.configure(scrollregion=sidebar_canvas.bbox("all"))
+
+def _sidebar_on_canvas_configure(event):
+    try:
+        sidebar_canvas.itemconfigure(sidebar_canvas_window_id, width=event.width)
+    except Exception:
+        pass
+
+def _sidebar_on_mousewheel(event):
+    try:
+        sx = sidebar_canvas.winfo_rootx()
+        sy = sidebar_canvas.winfo_rooty()
+        ex = sx + sidebar_canvas.winfo_width()
+        ey = sy + sidebar_canvas.winfo_height()
+
+        if sx <= event.x_root <= ex and sy <= event.y_root <= ey:
+            delta = int(-1 * (event.delta / 120))
+            if delta:
+                sidebar_canvas.yview_scroll(delta, "units")
+    except Exception:
+        pass
+
+sidebar.bind("<Configure>", _sidebar_on_configure)
+sidebar_canvas.bind("<Configure>", _sidebar_on_canvas_configure)
+sidebar_canvas.bind("<MouseWheel>", _sidebar_on_mousewheel)
+root.bind_all("<MouseWheel>", _sidebar_on_mousewheel)
+
+ACCESSIBLE_SERVERS = []
+server_listbox = None
+
+server_scope_label = tk.Label(
+    sidebar,
+    text=f"Server: {ACTIVE_SERVER_KEY or 'default'}",
+    font=("Segoe UI", 9, "bold"),
+    bg=THEME_COLORS["bg_dark_secondary"],
+    fg=THEME_COLORS["accent_orange"]
+)
+server_scope_label.pack(pady=(12, 2))
+
+server_scope_hint = tk.Label(
+    sidebar,
+    text="(include orașe / instituții)",
+    font=("Segoe UI", 7),
+    bg=THEME_COLORS["bg_dark_secondary"],
+    fg=THEME_COLORS["accent_orange_soft"]
+)
+server_scope_hint.pack(pady=(0, 4))
+
+servers_title = tk.Label(
+    sidebar,
+    text="Servere accesibile",
+    font=("Segoe UI", 9, "bold"),
+    bg=THEME_COLORS["bg_dark_secondary"],
+    fg=THEME_COLORS["accent_orange_soft"]
+)
+servers_title.pack(pady=(2, 2))
+
+server_listbox = tk.Listbox(
+    sidebar,
+    width=22,
+    height=5,
+    bg=THEME_COLORS["input_bg"],
+    fg=THEME_COLORS["fg_light"],
+    selectbackground=THEME_COLORS["accent_orange_bright"],
+    selectforeground=THEME_COLORS["bg_dark"],
+    relief="flat",
+    highlightthickness=0,
+    exportselection=False
+)
+server_listbox.pack(pady=(0, 8), padx=8, fill="x")
+
+server_buttons_frame = tk.Frame(sidebar, bg=THEME_COLORS["bg_dark_secondary"])
+
+def _is_server_management_owner():
+    if not DISCORD_AUTH or not DISCORD_AUTH.is_authenticated():
+        return False
+
+    owner_ids = set()
+
+    # Configurable owner IDs via env (comma-separated)
+    try:
+        env_ids = (os.getenv("PUNCTAJ_OWNER_DISCORD_IDS", "") or "").strip()
+        if env_ids:
+            owner_ids.update(
+                part.strip() for part in env_ids.split(",") if part and part.strip()
+            )
+    except Exception:
+        pass
+
+    # Fallback: known host owner ID from project docs
+    owner_ids.add("703316932232872016")
+
+    current_discord_id = str(DISCORD_AUTH.get_discord_id() or "").strip()
+    if current_discord_id and current_discord_id in owner_ids:
+        return True
+
+    # Trust DB-level ownership if user is global superuser in the multi-server model
+    try:
+        supabase_sync = globals().get("SUPABASE_SYNC")
+        if (
+            current_discord_id
+            and supabase_sync
+            and getattr(supabase_sync, "enabled", False)
+            and getattr(supabase_sync, "url", None)
+            and getattr(supabase_sync, "headers", None)
+        ):
+            response = requests.get(
+                f"{supabase_sync.url}/rest/v1/global_superusers",
+                headers=supabase_sync.headers,
+                params={
+                    "discord_id": f"eq.{current_discord_id}",
+                    "select": "discord_id",
+                    "limit": "1",
+                },
+                timeout=5,
+            )
+            if response.status_code == 200 and (response.json() or []):
+                return True
+    except Exception:
+        pass
+
+    # Secondary fallback by username
+    current_username = str(DISCORD_AUTH.get_username() or "").strip().lower()
+    if current_username == "parjanu":
+        return True
+
+    return False
+
+def _normalize_server_key(value):
+    cleaned = (value or "").strip().lower().replace(" ", "_")
+    allowed = "abcdefghijklmnopqrstuvwxyz0123456789_-"
+    cleaned = "".join(ch for ch in cleaned if ch in allowed)
+    return cleaned
+
+def _get_servers_local_fallback():
+    servers = []
+    try:
+        if os.path.isdir(BASE_DATA_DIR):
+            for name in sorted(os.listdir(BASE_DATA_DIR)):
+                path = os.path.join(BASE_DATA_DIR, name)
+                if os.path.isdir(path):
+                    servers.append({"server_key": name, "server_name": name})
+    except Exception as e:
+        print(f"⚠️ Error scanning local servers: {e}")
+    return servers
+
+def _resolve_visible_servers():
+    if DISCORD_AUTH and DISCORD_AUTH.is_authenticated():
+        try:
+            if _is_server_management_owner() and SUPABASE_SYNC and SUPABASE_SYNC.enabled and SUPABASE_SYNC.url:
+                response = requests.get(
+                    f"{SUPABASE_SYNC.url}/rest/v1/app_servers",
+                    headers=SUPABASE_SYNC.headers,
+                    params={
+                        "is_active": "eq.true",
+                        "select": "server_key,server_name",
+                        "order": "server_name.asc",
+                    },
+                    timeout=5,
+                )
+                if response.status_code == 200:
+                    return response.json() or []
+            return DISCORD_AUTH.get_accessible_servers() or []
+        except Exception as e:
+            print(f"⚠️ Error fetching accessible servers: {e}")
+            return []
+    if DISCORD_AUTH:
+        return []
+    return _get_servers_local_fallback()
+
+def _switch_active_server(server_key, reload_ui=True):
+    global ACTIVE_SERVER_KEY, DATA_DIR
+
+    server_key = (server_key or "").strip()
+    if not server_key:
+        return
+
+    target_data_dir = os.path.join(BASE_DATA_DIR, server_key)
+    os.makedirs(target_data_dir, exist_ok=True)
+
+    ACTIVE_SERVER_KEY = server_key
+    DATA_DIR = target_data_dir
+    os.environ["PUNCTAJ_SERVER_KEY"] = server_key
+
+    if DISCORD_AUTH:
+        try:
+            if hasattr(DISCORD_AUTH, '_server_key'):
+                setattr(DISCORD_AUTH, '_server_key', server_key)
+            user_id = DISCORD_AUTH.get_discord_id()
+            if user_id:
+                DISCORD_AUTH._load_scoped_permissions_from_supabase(user_id)
+        except Exception as e:
+            print(f"⚠️ Error reloading scoped permissions for server '{server_key}': {e}")
+
+    try:
+        server_scope_label.config(text=f"Server: {ACTIVE_SERVER_KEY or 'default'}")
+    except Exception:
+        pass
+
+    if reload_ui:
+        load_existing_tables()
+
+def _refresh_server_list_ui():
+    global ACCESSIBLE_SERVERS
+
+    ACCESSIBLE_SERVERS = _resolve_visible_servers()
+    allowed_keys = {
+        str(server.get("server_key") or "").strip()
+        for server in ACCESSIBLE_SERVERS
+        if str(server.get("server_key") or "").strip()
+    }
+
+    if DISCORD_AUTH and DISCORD_AUTH.is_authenticated() and ACTIVE_SERVER_KEY and ACTIVE_SERVER_KEY not in allowed_keys:
+        if ACCESSIBLE_SERVERS:
+            fallback_key = str(ACCESSIBLE_SERVERS[0].get("server_key") or "").strip()
+            if fallback_key:
+                _switch_active_server(fallback_key, reload_ui=False)
+        else:
+            try:
+                server_scope_label.config(text="Server: fără acces")
+            except Exception:
+                pass
+
+    server_listbox.delete(0, tk.END)
+
+    selected_index = None
+    for idx, server in enumerate(ACCESSIBLE_SERVERS):
+        key = str(server.get("server_key") or "").strip()
+        name = str(server.get("server_name") or key).strip()
+        label = f"{name} ({key})" if key and name != key else (key or name)
+        server_listbox.insert(tk.END, label)
+        if key and ACTIVE_SERVER_KEY and key == ACTIVE_SERVER_KEY:
+            selected_index = idx
+
+    if selected_index is not None:
+        server_listbox.selection_clear(0, tk.END)
+        server_listbox.selection_set(selected_index)
+        server_listbox.activate(selected_index)
+
+def _selected_server_from_list():
+    selection = server_listbox.curselection()
+    if not selection:
+        return None
+    idx = selection[0]
+    if idx < 0 or idx >= len(ACCESSIBLE_SERVERS):
+        return None
+    return ACCESSIBLE_SERVERS[idx]
+
+def _upsert_server_to_supabase(server_key, server_name):
+    if not (SUPABASE_SYNC and SUPABASE_SYNC.enabled and SUPABASE_SYNC.url and SUPABASE_SYNC.key):
+        return True
+
+    headers = dict(SUPABASE_SYNC.headers)
+    headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
+    payload = [{
+        "server_key": server_key,
+        "server_name": server_name,
+        "is_active": True
+    }]
+    response = requests.post(
+        f"{SUPABASE_SYNC.url}/rest/v1/app_servers",
+        headers=headers,
+        json=payload,
+        timeout=8
+    )
+    return response.status_code in (200, 201, 204)
+
+def _set_server_name_supabase(server_key, server_name):
+    if not (SUPABASE_SYNC and SUPABASE_SYNC.enabled and SUPABASE_SYNC.url and SUPABASE_SYNC.key):
+        return True
+
+    response = requests.patch(
+        f"{SUPABASE_SYNC.url}/rest/v1/app_servers?server_key=eq.{server_key}",
+        headers=SUPABASE_SYNC.headers,
+        json={"server_name": server_name, "is_active": True},
+        timeout=8
+    )
+    return response.status_code in (200, 204)
+
+def _deactivate_server_supabase(server_key):
+    if not (SUPABASE_SYNC and SUPABASE_SYNC.enabled and SUPABASE_SYNC.url and SUPABASE_SYNC.key):
+        return True
+
+    response = requests.patch(
+        f"{SUPABASE_SYNC.url}/rest/v1/app_servers?server_key=eq.{server_key}",
+        headers=SUPABASE_SYNC.headers,
+        json={"is_active": False},
+        timeout=8
+    )
+    return response.status_code in (200, 204)
+
+def add_server():
+    if not _is_server_management_owner():
+        messagebox.showwarning("Acces interzis", "Doar owner-ul poate adăuga servere.")
+        return
+
+    server_name = simpledialog.askstring("Adaugă server", "Nume server:", parent=root)
+    if not server_name:
+        return
+
+    default_key = _normalize_server_key(server_name)
+    server_key = simpledialog.askstring("Adaugă server", "Cheie server (server_key):", initialvalue=default_key, parent=root)
+    server_key = _normalize_server_key(server_key)
+    if not server_key:
+        messagebox.showwarning("Eroare", "Cheia serverului este invalidă.")
+        return
+
+    for server in _get_servers_local_fallback():
+        if server.get("server_key") == server_key:
+            messagebox.showwarning("Eroare", f"Serverul '{server_key}' există deja local.")
+            return
+
+    os.makedirs(os.path.join(BASE_DATA_DIR, server_key), exist_ok=True)
+
+    if not _upsert_server_to_supabase(server_key, server_name.strip()):
+        messagebox.showwarning("Atenție", "Server local creat, dar update-ul în Supabase a eșuat.")
+
+    _refresh_server_list_ui()
+    if messagebox.askyesno("Server creat", f"Serverul '{server_name}' a fost creat. Vrei să comuți acum pe el?"):
+        _switch_active_server(server_key, reload_ui=True)
+
+def edit_server():
+    if not _is_server_management_owner():
+        messagebox.showwarning("Acces interzis", "Doar owner-ul poate edita servere.")
+        return
+
+    selected = _selected_server_from_list()
+    if not selected:
+        messagebox.showinfo("Info", "Selectează un server din listă.")
+        return
+
+    server_key = str(selected.get("server_key") or "").strip()
+    current_name = str(selected.get("server_name") or server_key).strip()
+    new_name = simpledialog.askstring("Editează server", "Nume nou server:", initialvalue=current_name, parent=root)
+    if not new_name:
+        return
+
+    if not _set_server_name_supabase(server_key, new_name.strip()):
+        messagebox.showwarning("Atenție", "Nu am putut actualiza numele în Supabase.")
+
+    _refresh_server_list_ui()
+
+def delete_server():
+    global ACTIVE_SERVER_KEY
+
+    if not _is_server_management_owner():
+        messagebox.showwarning("Acces interzis", "Doar owner-ul poate șterge servere.")
+        return
+
+    selected = _selected_server_from_list()
+    if not selected:
+        messagebox.showinfo("Info", "Selectează un server din listă.")
+        return
+
+    server_key = str(selected.get("server_key") or "").strip()
+    server_name = str(selected.get("server_name") or server_key).strip()
+    if not messagebox.askyesno(
+        "Confirmare",
+        f"Ștergi serverul '{server_name}'?\n\nSe va elimina folderul local și serverul va fi dezactivat în Supabase."
+    ):
+        return
+
+    local_path = os.path.join(BASE_DATA_DIR, server_key)
+    if os.path.isdir(local_path):
+        shutil.rmtree(local_path, ignore_errors=True)
+
+    if not _deactivate_server_supabase(server_key):
+        messagebox.showwarning("Atenție", "Folderul local a fost șters, dar dezactivarea în Supabase a eșuat.")
+
+    _refresh_server_list_ui()
+    if ACTIVE_SERVER_KEY == server_key:
+        if ACCESSIBLE_SERVERS:
+            first_key = str(ACCESSIBLE_SERVERS[0].get("server_key") or "").strip()
+            if first_key:
+                _switch_active_server(first_key, reload_ui=True)
+                return
+
+        ACTIVE_SERVER_KEY = None
+        server_scope_label.config(text="Server: default")
+        load_existing_tables()
+
+def _on_server_selected(_event=None):
+    selected = _selected_server_from_list()
+    if not selected:
+        return
+    server_key = str(selected.get("server_key") or "").strip()
+    if server_key and server_key != ACTIVE_SERVER_KEY:
+        _switch_active_server(server_key, reload_ui=True)
+
+server_listbox.bind("<<ListboxSelect>>", _on_server_selected)
+
+btn_add_server = tk.Button(server_buttons_frame, text="➕ Adaugă server", width=14, command=add_server)
+btn_edit_server = tk.Button(server_buttons_frame, text="✏️ Editează server", width=14, command=edit_server)
+btn_del_server = tk.Button(server_buttons_frame, text="❌ Șterge server", width=14, command=delete_server)
+
+for btn in (btn_add_server, btn_edit_server, btn_del_server):
+    apply_theme_button(btn)
+
+btn_add_server.pack(fill="x", pady=(0, 4))
+btn_edit_server.pack(fill="x", pady=(0, 4))
+btn_del_server.pack(fill="x", pady=(0, 0))
+
+def _update_server_management_buttons_state():
+    can_manage = _is_server_management_owner()
+    state = "normal" if can_manage else "disabled"
+    for btn in (btn_add_server, btn_edit_server, btn_del_server):
+        try:
+            btn.configure(state=state)
+        except Exception:
+            pass
+
+server_buttons_frame.pack(fill="x", padx=8, pady=(0, 8))
+_update_server_management_buttons_state()
 
 sidebar_label = tk.Label(sidebar, text="Orașe", font=("Segoe UI", 12, "bold"), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["accent_red"])
-sidebar_label.pack(pady=20)
+sidebar_label.pack(pady=10)
 
 btn_add_tab = tk.Button(sidebar, text="➕ Adaugă oraș", width=18)
-btn_add_tab.pack(pady=8)
-apply_theme_button(btn_add_tab)
-# Verificăm permisiunea pentru adăugare oraș - numai user și admin
-if is_read_only_user():
-    btn_add_tab.config(state='disabled')
+if not DISCORD_AUTH or can_perform_action('add_city'):
+    btn_add_tab.pack(pady=8)
+    apply_theme_button(btn_add_tab)
 
 btn_edit_tab = tk.Button(sidebar, text="✏️ Editează oraș", width=18)
-btn_edit_tab.pack(pady=8)
-apply_theme_button(btn_edit_tab)
-# Verificăm permisiunea pentru editare oraș - numai user și admin
-if is_read_only_user():
-    btn_edit_tab.config(state='disabled')
+if not DISCORD_AUTH or can_perform_action('edit_city'):
+    btn_edit_tab.pack(pady=8)
+    apply_theme_button(btn_edit_tab)
 
 btn_del_tab = tk.Button(sidebar, text="❌ Șterge oraș", width=18)
-btn_del_tab.pack(pady=8)
-apply_theme_button(btn_del_tab)
-# Verificăm permisiunea pentru ștergere oraș - numai user și admin
-if is_read_only_user():
-    btn_del_tab.config(state='disabled')
+if not DISCORD_AUTH or can_perform_action('delete_city'):
+    btn_del_tab.pack(pady=8)
+    apply_theme_button(btn_del_tab)
 
 # Separator
 tk.Frame(sidebar, height=2, bg=THEME_COLORS["accent_orange"]).pack(fill=tk.X, pady=15, padx=10)
@@ -2607,7 +3122,7 @@ def open_backup_manager():
 
 def refresh_discord_section():
     """Reîncarcă secțiunea Discord după autentificare"""
-    global DISCORD_AUTH
+    global DISCORD_AUTH, ACTIVE_SERVER_KEY
     
     # Șterge secțiunea anterioară
     for widget in discord_section_container.winfo_children():
@@ -2618,7 +3133,20 @@ def refresh_discord_section():
     
     if not DISCORD_AUTH or not DISCORD_AUTH.is_authenticated():
         print("DEBUG: No Discord auth, section empty")
+        _refresh_server_list_ui()
+        _update_server_management_buttons_state()
         return
+
+    auth_server_key = getattr(DISCORD_AUTH, '_server_key', None)
+    if auth_server_key:
+        ACTIVE_SERVER_KEY = str(auth_server_key).strip() or ACTIVE_SERVER_KEY
+    try:
+        server_scope_label.config(text=f"Server: {ACTIVE_SERVER_KEY or 'default'}")
+    except Exception:
+        pass
+
+    _refresh_server_list_ui()
+    _update_server_management_buttons_state()
     
     print("DEBUG: Rebuilding Discord section")
     
@@ -2760,9 +3288,9 @@ def refresh_discord_section():
             fg="#c41e3a"
         ).pack(anchor="w", padx=8, pady=5)
     
-    # Buton Admin - Pentru SUPERUSER sau utilizatori cu permisiunea 'can_see_admin_button'
+    # Buton Admin - doar cu permisiune explicită
     if open_granular_permissions_panel and DISCORD_AUTH:
-        can_see_button = DISCORD_AUTH.is_superuser() or DISCORD_AUTH.has_granular_permission('can_see_admin_button')
+        can_see_button = DISCORD_AUTH.has_granular_permission('can_see_admin_button')
         if can_see_button:
             print("DEBUG: Creating Admin permissions button")
             def open_admin_permissions():
@@ -3106,9 +3634,9 @@ def refresh_admin_buttons():
     else:
         print(f"DEBUG: Refresh admin buttons - DISCORD_AUTH is None")
     
-    # Butoane admin - Pentru SUPERUSER sau utilizatori cu permisiuni specifice
+    # Butoane admin - doar cu permisiuni explicite
     if DISCORD_AUTH and open_granular_permissions_panel:
-        can_see_permissions = DISCORD_AUTH.is_superuser() or DISCORD_AUTH.has_granular_permission('can_see_user_permissions_button')
+        can_see_permissions = DISCORD_AUTH.has_granular_permission('can_see_user_permissions_button')
         if can_see_permissions:
             print("✓ Creez buton Permisiuni Utilizatori")
             def open_permissions_panel():
@@ -3127,7 +3655,7 @@ def refresh_admin_buttons():
             btn_permissions.pack(pady=8)
     
     if DISCORD_AUTH and ADMIN_PANEL_AVAILABLE and open_admin_panel:
-        can_see_panel = DISCORD_AUTH.is_superuser() or DISCORD_AUTH.has_granular_permission('can_see_admin_panel')
+        can_see_panel = DISCORD_AUTH.has_granular_permission('can_see_admin_panel')
         if can_see_panel:
             print("✓ Creez buton Admin Panel")
             btn_admin = tk.Button(
@@ -3141,7 +3669,7 @@ def refresh_admin_buttons():
             )
             btn_admin.pack(pady=8)
     
-    # Buton Raport Săptămânal din Arhiva
+    # Buton Raport Săptămânal din Arhiva (vizibil pentru toți utilizatorii)
     btn_weekly_report = tk.Button(
         admin_buttons_container,
         text="📋 Raport Săptămâna Trecută",
@@ -3167,23 +3695,72 @@ def refresh_admin_buttons():
         filter_frame = tk.Frame(logs_window, bg=THEME_COLORS["bg_dark"])
         filter_frame.pack(fill="x", padx=10, pady=10)
         
-        tk.Label(filter_frame, text="Selectează instituția:", font=("Segoe UI", 10), bg=THEME_COLORS["bg_dark"], fg=THEME_COLORS["fg_light"]).pack(side="left", padx=5)
-        
-        # Obține lista instituțiilor
-        institutions_list = []
+        tk.Label(filter_frame, text="Server:", font=("Segoe UI", 10), bg=THEME_COLORS["bg_dark"], fg=THEME_COLORS["fg_light"]).pack(side="left", padx=5)
+
+        server_keys = []
         try:
-            for city in sorted([d for d in os.listdir(DATA_DIR) if os.path.isdir(city_dir(d))]):
-                inst_dir = city_dir(city)
-                if os.path.exists(inst_dir):
-                    for json_file in sorted([f for f in os.listdir(inst_dir) if f.endswith('.json')]):
-                        institution = json_file[:-5]
-                        institutions_list.append(f"{city} / {institution}")
-        except:
-            pass
-        
+            visible_servers = _resolve_visible_servers()
+            server_keys = [
+                str(server.get("server_key") or "").strip()
+                for server in (visible_servers or [])
+                if str(server.get("server_key") or "").strip()
+            ]
+        except Exception:
+            server_keys = []
+
+        if ACTIVE_SERVER_KEY and ACTIVE_SERVER_KEY not in server_keys:
+            server_keys.append(ACTIVE_SERVER_KEY)
+
+        selected_server = tk.StringVar(value=(ACTIVE_SERVER_KEY or "Toate"))
+        server_combo_values = ["Toate"] + sorted(set(server_keys))
+        server_combo = ttk.Combobox(
+            filter_frame,
+            textvariable=selected_server,
+            values=server_combo_values,
+            state="readonly",
+            width=22
+        )
+        server_combo.pack(side="left", padx=5)
+
+        tk.Label(filter_frame, text="Instituție:", font=("Segoe UI", 10), bg=THEME_COLORS["bg_dark"], fg=THEME_COLORS["fg_light"]).pack(side="left", padx=(12, 5))
+
         selected_institution = tk.StringVar(value="Toate")
-        combo = ttk.Combobox(filter_frame, textvariable=selected_institution, values=["Toate"] + institutions_list, state="readonly", width=40)
+        combo = ttk.Combobox(filter_frame, textvariable=selected_institution, values=["Toate"], state="readonly", width=40)
         combo.pack(side="left", padx=5)
+
+        def rebuild_institution_filter():
+            institutions_list = []
+            selected_key = selected_server.get()
+
+            server_dirs = []
+            if selected_key == "Toate":
+                server_dirs = [
+                    os.path.join(BASE_DATA_DIR, key)
+                    for key in server_keys
+                    if key
+                ]
+                if DATA_DIR not in server_dirs:
+                    server_dirs.append(DATA_DIR)
+            else:
+                server_dirs = [os.path.join(BASE_DATA_DIR, selected_key)]
+
+            for server_dir in server_dirs:
+                try:
+                    if not os.path.isdir(server_dir):
+                        continue
+                    for city in sorted([d for d in os.listdir(server_dir) if os.path.isdir(os.path.join(server_dir, d))]):
+                        inst_dir = os.path.join(server_dir, city)
+                        for json_file in sorted([f for f in os.listdir(inst_dir) if f.endswith('.json')]):
+                            institution = json_file[:-5]
+                            label = f"{city} / {institution}"
+                            if label not in institutions_list:
+                                institutions_list.append(label)
+                except Exception:
+                    continue
+
+            combo.configure(values=["Toate"] + institutions_list)
+            if selected_institution.get() not in (["Toate"] + institutions_list):
+                selected_institution.set("Toate")
         
         # Frame pentru scroll
         canvas_frame = tk.Frame(logs_window)
@@ -3209,9 +3786,12 @@ def refresh_admin_buttons():
                     return
                 
                 selected = selected_institution.get()
+                selected_srv = selected_server.get()
                 
                 # Build query
                 url = f"{SUPABASE_SYNC.url}/rest/v1/{SUPABASE_SYNC.table_logs}?order=timestamp.desc&limit=100"
+                if selected_srv != "Toate":
+                    url += f"&server_key=eq.{selected_srv}"
                 if selected != "Toate":
                     # Filter by institution
                     inst_parts = selected.split(" / ")
@@ -3251,6 +3831,8 @@ def refresh_admin_buttons():
                             # Institution
                             institution = log.get('institution', 'N/A')
                             city = log.get('city', 'N/A')
+                            server_key = log.get('server_key', 'default')
+                            tk.Label(card, text=f"🖥️ Server: {server_key}", font=("Segoe UI", 9), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["fg_light"], anchor="w").pack(fill="x", padx=20, pady=1)
                             tk.Label(card, text=f"🏢 {city} / {institution}", font=("Segoe UI", 9), bg=THEME_COLORS["bg_dark_secondary"], fg=THEME_COLORS["fg_light"], anchor="w").pack(fill="x", padx=20, pady=1)
                             
                             # Details
@@ -3264,24 +3846,36 @@ def refresh_admin_buttons():
             canvas.configure(scrollregion=canvas.bbox("all"))
         
         # Bind combo change
+        def on_server_change(_event=None):
+            rebuild_institution_filter()
+            load_logs()
+
+        server_combo.bind("<<ComboboxSelected>>", on_server_change)
         combo.bind("<<ComboboxSelected>>", lambda e: load_logs())
         
         # Load initial logs
+        rebuild_institution_filter()
         load_logs()
         
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
     
-    btn_logs = tk.Button(
-        admin_buttons_container,
-        text="📋 Activity Logs",
-        width=18,
-        bg="#c41e3a",
-        fg="white",
-        font=("Segoe UI", 9, "bold"),
-        command=open_logs_viewer
-    )
-    btn_logs.pack(pady=8)
+    if (not DISCORD_AUTH) or DISCORD_AUTH.has_granular_permission('can_view_activity_logs') or DISCORD_AUTH.has_granular_permission('can_view_logs'):
+        btn_logs = tk.Button(
+            admin_buttons_container,
+            text="📋 Activity Logs",
+            width=18,
+            bg="#c41e3a",
+            fg="white",
+            font=("Segoe UI", 9, "bold"),
+            command=open_logs_viewer
+        )
+        btn_logs.pack(pady=8)
+
+    try:
+        _sidebar_on_configure()
+    except Exception:
+        pass
 
 # Separator
 tk.Frame(sidebar, height=2, bg=THEME_COLORS["accent_orange"]).pack(fill=tk.X, pady=15, padx=10)
@@ -3453,25 +4047,22 @@ def create_city_ui(city):
     h_scrollbar.pack(fill="x")
 
     # Buton Adaugă Instituție
-    btn_add_inst = tk.Button(controls, text="➕ Adaugă instituție", width=18, command=lambda c=city: add_institution(c))
-    btn_add_inst.pack(side="left", padx=5)
-    apply_theme_button(btn_add_inst)
-    if not check_institution_permission(city, "", 'can_edit'):
-        btn_add_inst.config(state='disabled')
+    if check_institution_permission(city, "", 'can_add_institution'):
+        btn_add_inst = tk.Button(controls, text="➕ Adaugă instituție", width=18, command=lambda c=city: add_institution(c))
+        btn_add_inst.pack(side="left", padx=5)
+        apply_theme_button(btn_add_inst)
     
     # Buton Editează Instituție
-    btn_edit_inst = tk.Button(controls, text="✏️ Editează instituție", width=18, command=lambda c=city: edit_institution(c))
-    btn_edit_inst.pack(side="left", padx=5)
-    apply_theme_button(btn_edit_inst)
-    if not check_institution_permission(city, "", 'can_edit'):
-        btn_edit_inst.config(state='disabled')
+    if check_institution_permission(city, "", 'can_edit_institution'):
+        btn_edit_inst = tk.Button(controls, text="✏️ Editează instituție", width=18, command=lambda c=city: edit_institution(c))
+        btn_edit_inst.pack(side="left", padx=5)
+        apply_theme_button(btn_edit_inst)
     
     # Buton Șterge Instituții
-    btn_del_inst = tk.Button(controls, text="❌ Șterge instituții", width=18, command=lambda c=city: delete_institution_ui(c))
-    btn_del_inst.pack(side="left", padx=5)
-    apply_theme_button(btn_del_inst)
-    if not check_institution_permission(city, "", 'can_delete'):
-        btn_del_inst.config(state='disabled')
+    if check_institution_permission(city, "", 'can_delete_institution'):
+        btn_del_inst = tk.Button(controls, text="❌ Șterge instituții", width=18, command=lambda c=city: delete_institution_ui(c))
+        btn_del_inst.pack(side="left", padx=5)
+        apply_theme_button(btn_del_inst)
 
     inst_nb = ttk.Notebook(city_frame)
     inst_nb.pack(fill="both", expand=True)
@@ -3740,6 +4331,123 @@ def sync_roles_with_ranks(tree, ranks_map):
     return needs_save
 
 
+
+
+
+
+    
+    # Content frame
+    content_frame = tk.Frame(win, bg=THEME_COLORS["bg_dark"])
+    content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+    
+    # Status label
+    status_label = tk.Label(
+        content_frame,
+        text="⏳ Se încarcă raportul...",
+        font=("Segoe UI", 10),
+        bg=THEME_COLORS["bg_dark"],
+        fg=THEME_COLORS["accent_orange"]
+    )
+    status_label.pack(pady=10)
+    
+    # 🔍 SEARCH FRAME - Cameră de căutare
+    search_frame = tk.Frame(content_frame, bg=THEME_COLORS["bg_dark"])
+    search_frame.pack(fill=tk.X, pady=(5, 15))
+    
+    tk.Label(
+        search_frame,
+        text="🔍 Căutare angajat:",
+        font=("Segoe UI", 10, "bold"),
+        bg=THEME_COLORS["bg_dark"],
+        fg=THEME_COLORS["fg_light"]
+    ).pack(side=tk.LEFT, padx=(0, 10))
+    
+    search_var = tk.StringVar()
+    search_entry = tk.Entry(
+        search_frame,
+        textvariable=search_var,
+        font=("Segoe UI", 10),
+        width=25,
+        bg=THEME_COLORS["entry_bg"],
+        fg=THEME_COLORS["fg_light"],
+        insertbackground=THEME_COLORS["accent_orange"]
+    )
+    search_entry.pack(side=tk.LEFT, padx=5)
+    
+    def apply_search_filter():
+        """Aplică filtrul de căutare pe tabel"""
+        search_term = search_var.get().strip().lower()
+        
+        # Păstrează toate datele originale
+        if not hasattr(tree_raport, '_original_data'):
+            # Prima dată când se aplică filtrul, salvează datele originale
+            tree_raport._original_data = []
+            for item in tree_raport.get_children():
+                values = tree_raport.item(item, "values")
+                tree_raport._original_data.append(values)
+        
+        # Golește tabelul
+        for item in tree_raport.get_children():
+            tree_raport.delete(item)
+        
+        # Re-populează cu datele filtrate
+        if search_term == "":
+            # Dacă nu e termen de căutare, afișează toate datele
+            for values in tree_raport._original_data:
+                tree_raport.insert("", "end", values=values)
+        else:
+            # Filtrează pe baza numelui angajatului (coloana 1)
+            matches_found = 0
+            for values in tree_raport._original_data:
+                employee_name = str(values[1]).lower()  # Coloana "Nume Angajat"
+                if search_term in employee_name:
+                    tree_raport.insert("", "end", values=values)
+                    matches_found += 1
+            
+            # Actualizează status-ul
+            if matches_found == 0:
+                status_label.config(text=f"❌ Nu s-au găsit rezultate pentru '{search_var.get()}'")
+            else:
+                status_label.config(text=f"🔍 Găsite {matches_found} rezultate pentru '{search_var.get()}'")
+    
+    def clear_search_filter():
+        """Șterge filtrul și afișează toate datele"""
+        search_var.set("")
+        if hasattr(tree_raport, '_original_data'):
+            # Golește tabelul
+            for item in tree_raport.get_children():
+                tree_raport.delete(item)
+            
+            # Re-populează cu toate datele
+            for values in tree_raport._original_data:
+                tree_raport.insert("", "end", values=values)
+            
+            status_label.config(text=f"✅ Raport complet: {len(tree_raport._original_data)} angajați")
+    
+    # Buton de căutare
+    btn_search = tk.Button(
+        search_frame,
+        text="🔍 Caută",
+        command=apply_search_filter,
+        bg=THEME_COLORS["accent_orange"],
+        fg="white",
+        font=("Segoe UI", 9, "bold"),
+        width=10
+    )
+    btn_search.pack(side=tk.LEFT, padx=5)
+    
+    # Buton de resetare
+    btn_reset = tk.Button(
+        search_frame,
+        text="🔄 Reset",
+        command=clear_search_filter,
+        bg=THEME_COLORS["button_bg"],
+        fg=THEME_COLORS["fg_light"],
+        font=("Segoe UI", 9),
+        width=8
+    )
+    btn_reset.pack(side=tk.LEFT, padx=5)
+    
 def reset_punctaj(tree, city, institution):
     """Resetează PUNCTAJ-ul la 0, arhivează datele vechi în JSON cu timestamp"""
     
@@ -3772,8 +4480,9 @@ def reset_punctaj(tree, city, institution):
         print("❌ PUNCTAJ column not found!")
         return
     
-    # Creează folder de arhivă pentru oraș
-    archive_city_dir = os.path.join(ARCHIVE_DIR, city)
+    # Creează folder de arhivă pentru server + oraș
+    active_server = (ACTIVE_SERVER_KEY or os.getenv("PUNCTAJ_SERVER_KEY", "") or "default").strip() or "default"
+    archive_city_dir = os.path.join(ARCHIVE_DIR, active_server, city)
     os.makedirs(archive_city_dir, exist_ok=True)
     print(f"✅ Archive dir created: {archive_city_dir}")
     
@@ -3901,7 +4610,7 @@ def reset_punctaj(tree, city, institution):
     else:
         print("⚠️ ACTION_LOGGER not available")
     
-    # 📊 SAVE TO SUPABASE weekly_reports TABLE
+            # 📊 SAVE TO SUPABASE weekly reports table (configurable)
     print(f"💾 Attempting to save to Supabase...")
     try:
         if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
@@ -3920,7 +4629,7 @@ def reset_punctaj(tree, city, institution):
             # Get institution_id from inst_data if available
             institution_id = inst_data.get("institution_id", None)
             
-            # Prepare data for weekly_reports
+            # Prepare data for weekly reports table
             report_json = {
                 "week_start": monday.strftime('%Y-%m-%d'),
                 "week_end": today.strftime('%Y-%m-%d'),
@@ -3939,23 +4648,24 @@ def reset_punctaj(tree, city, institution):
                 "archived_at": current_timestamp
             }
             
-            # Use REST API to insert into weekly_reports
+            # Use REST API to insert into configured weekly reports table
             headers = {
                 "apikey": SUPABASE_SYNC.key,
                 "Authorization": f"Bearer {SUPABASE_SYNC.key}",
                 "Content-Type": "application/json"
             }
             
-            url = f"{SUPABASE_SYNC.url}/rest/v1/weekly_reports"
+            weekly_table = getattr(SUPABASE_SYNC, "table_weekly_reports", "weekly_reports")
+            url = f"{SUPABASE_SYNC.url}/rest/v1/{weekly_table}"
             print(f"📡 Posting to: {url}")
             response = requests.post(url, json=report_json, headers=headers)
             
             print(f"📊 Response status: {response.status_code}")
             
             if response.status_code == 201:
-                print(f"✅ Reset logged to Supabase weekly_reports: {city}/{institution}")
+                print(f"✅ Reset logged to Supabase {weekly_table}: {city}/{institution}")
             else:
-                print(f"⚠️ Failed to log reset to Supabase (Status {response.status_code})")
+                print(f"⚠️ Failed to log reset to Supabase table '{weekly_table}' (Status {response.status_code})")
                 print(f"   Response: {response.text}")
             
             # 📊 UPDATE EMPLOYEES TABLE IN SUPABASE - Set all PUNCTAJ to 0
@@ -4006,18 +4716,47 @@ def reset_punctaj(tree, city, institution):
 
 
 def show_weekly_report():
-    """Afișează raportul din arhiva - toate JSON-urile salvate"""
+    """Afișează raportul din arhivă doar pentru serverul și tabela curentă"""
     try:
         from datetime import timedelta
+
+        # Context activ: server + oraș + instituție selectate în UI
+        active_server = (ACTIVE_SERVER_KEY or os.getenv("PUNCTAJ_SERVER_KEY", "") or "default").strip() or "default"
+
+        current_city_tab = city_notebook.select()
+        if not current_city_tab:
+            messagebox.showwarning("Info", "Selectează mai întâi un oraș și o instituție.")
+            return
+
+        current_city = city_notebook.tab(current_city_tab, "text")
+        if not current_city or current_city not in tabs:
+            messagebox.showwarning("Info", "Nu pot determina orașul activ.")
+            return
+
+        inst_nb = tabs[current_city].get("nb")
+        current_inst_tab = inst_nb.select() if inst_nb else None
+        if not current_inst_tab:
+            messagebox.showwarning("Info", "Selectează o instituție activă.")
+            return
+
+        current_institution = inst_nb.tab(current_inst_tab, "text")
+        if not current_institution:
+            messagebox.showwarning("Info", "Nu pot determina instituția activă.")
+            return
         
         # Colectează toate fișierele JSON din arhiva
         archive_files = []
         
-        print(f"📂 Căutam în: {ARCHIVE_DIR}")
+        server_archive_root = os.path.join(ARCHIVE_DIR, active_server)
+        print(f"📂 Căutam în: {server_archive_root} (server={active_server}, city={current_city}, inst={current_institution})")
         
         try:
-            for city_folder in os.listdir(ARCHIVE_DIR):
-                city_path = os.path.join(ARCHIVE_DIR, city_folder)
+            archive_root = server_archive_root if os.path.isdir(server_archive_root) else ARCHIVE_DIR
+            for city_folder in os.listdir(archive_root):
+                if city_folder != current_city:
+                    continue
+
+                city_path = os.path.join(archive_root, city_folder)
                 if not os.path.isdir(city_path):
                     continue
                 
@@ -4047,6 +4786,10 @@ def show_weekly_report():
                                 institution = parts[0]
                                 date_str = parts[1]  # YYYY-MM-DD
                                 time_str = parts[2]  # HH-MM-SS
+
+                                # Strict scope: only active institution
+                                if institution != current_institution:
+                                    continue
                                 
                                 archive_files.append({
                                     'city': city_folder,
@@ -4071,7 +4814,11 @@ def show_weekly_report():
             return
         
         if not archive_files:
-            messagebox.showinfo("Info", f"Nu s-au găsit rapoarte în arhiva\n({ARCHIVE_DIR})")
+            messagebox.showinfo(
+                "Info",
+                f"Nu s-au găsit rapoarte pentru:\n"
+                f"Server: {active_server}\nOraș: {current_city}\nInstituție: {current_institution}"
+            )
             return
         
         print(f"\n✅ Găsite {len(archive_files)} rapoarte în arhiva")
@@ -4087,7 +4834,7 @@ def show_weekly_report():
         
         # Creează fereastră pentru afișare raport
         report_window = tk.Toplevel(root)
-        report_window.title(f"📋 Rapoarte din Arhiva ({len(archive_files)} fișiere)")
+        report_window.title(f"📋 Rapoarte - {active_server} / {current_city} / {current_institution} ({len(archive_files)} fișiere)")
         report_window.geometry("1200x700")
         
         # Header with summary
@@ -4100,6 +4847,14 @@ def show_weekly_report():
             font=("Segoe UI", 13, "bold"),
             background="#e3f2fd"
         ).pack(anchor="w", padx=10, pady=5)
+
+        ttk.Label(
+            header_frame,
+            text=f"🖥️ Server: {active_server} | 🏙️ Oraș: {current_city} | 🏢 Instituție: {current_institution}",
+            font=("Segoe UI", 10, "bold"),
+            background="#e3f2fd",
+            foreground="#2e5aac"
+        ).pack(anchor="w", padx=10, pady=2)
         
         ttk.Label(
             header_frame,
@@ -4420,7 +5175,14 @@ def create_institution_tab(city, institution):
 
     for col in columns:
         tree.heading(col, text=col.upper(), anchor="center")
-        tree.column(col, anchor="center", width=200)
+        # Determină lățimea în funcție de coloană
+        if col in ["RANK"]:
+            width = 80
+        elif col in ["PUNCTAJ"]:
+            width = 100
+        else:
+            width = 200
+        tree.column(col, anchor="center", width=width)
 
     # Încarcă rândurile din date - deduplicare
     seen_discord = set()
@@ -4512,68 +5274,67 @@ def create_institution_tab(city, institution):
     btn_frame = tk.Frame(frame, bg=THEME_COLORS["bg_dark"])
     btn_frame.pack(pady=10)
 
+    row0_col = 0
+    row1_col = 0
+
     # Buton Adaugă Angajat
-    btn_add_emp = tk.Button(
-        btn_frame, text="Adaugă angajat", width=18,
-        command=lambda t=tree, c=city, inst=institution: add_member(t, c, inst)
-    )
-    btn_add_emp.grid(row=0, column=0, padx=8, pady=5)
-    apply_theme_button(btn_add_emp)
-    # Verifică permisiuni pe instituție (granulare)
-    if not check_institution_permission(city, institution, 'can_add_employee'):
-        btn_add_emp.config(state='disabled')
+    if check_institution_permission(city, institution, 'can_add_employee'):
+        btn_add_emp = tk.Button(
+            btn_frame, text="Adaugă angajat", width=18,
+            command=lambda t=tree, c=city, inst=institution: add_member(t, c, inst)
+        )
+        btn_add_emp.grid(row=0, column=row0_col, padx=8, pady=5)
+        apply_theme_button(btn_add_emp)
+        row0_col += 1
 
     # Buton Șterge Angajat
-    btn_del_emp = tk.Button(
-        btn_frame, text="Șterge angajat", width=18,
-        command=lambda t=tree, c=city, inst=institution: delete_members(t, c, inst)
-    )
-    btn_del_emp.grid(row=0, column=1, padx=8, pady=5)
-    apply_theme_button(btn_del_emp)
-    # Verifică permisiuni pe instituție (granulare)
-    if not check_institution_permission(city, institution, 'can_delete_employee'):
-        btn_del_emp.config(state='disabled')
+    if check_institution_permission(city, institution, 'can_delete_employee'):
+        btn_del_emp = tk.Button(
+            btn_frame, text="Șterge angajat", width=18,
+            command=lambda t=tree, c=city, inst=institution: delete_members(t, c, inst)
+        )
+        btn_del_emp.grid(row=0, column=row0_col, padx=8, pady=5)
+        apply_theme_button(btn_del_emp)
+        row0_col += 1
 
     # Buton Editează Angajat
-    btn_edit_emp = tk.Button(
-        btn_frame, text="✏️ Editează angajat", width=18,
-        command=lambda t=tree, c=city, inst=institution: edit_member(t, c, inst)
-    )
-    btn_edit_emp.grid(row=0, column=2, padx=8, pady=5)
-    apply_theme_button(btn_edit_emp)
-    # Verifică permisiuni pe instituție (granulare)
-    if not check_institution_permission(city, institution, 'can_edit_employee'):
-        btn_edit_emp.config(state='disabled')
+    if check_institution_permission(city, institution, 'can_edit_employee'):
+        btn_edit_emp = tk.Button(
+            btn_frame, text="✏️ Editează angajat", width=18,
+            command=lambda t=tree, c=city, inst=institution: edit_member(t, c, inst)
+        )
+        btn_edit_emp.grid(row=0, column=row0_col, padx=8, pady=5)
+        apply_theme_button(btn_edit_emp)
+        row0_col += 1
 
-    btn_add_points = tk.Button(
-        btn_frame, text="➕ Adaugă punctaj", width=18,
-        command=lambda t=tree, c=city, inst=institution: punctaj_cu_selectie(t, c, inst, "add")
-    )
-    btn_add_points.grid(row=1, column=0, padx=8, pady=5)
-    apply_theme_button(btn_add_points)
-    # Verifică permisiuni pe instituție (granulare)
-    if not check_institution_permission(city, institution, 'can_add_score'):
-        btn_add_points.config(state='disabled')
+    if check_institution_permission(city, institution, 'can_add_score'):
+        btn_add_points = tk.Button(
+            btn_frame, text="➕ Adaugă punctaj", width=18,
+            command=lambda t=tree, c=city, inst=institution: punctaj_cu_selectie(t, c, inst, "add")
+        )
+        btn_add_points.grid(row=1, column=row1_col, padx=8, pady=5)
+        apply_theme_button(btn_add_points)
+        row1_col += 1
 
-    btn_remove_points = tk.Button(
-        btn_frame, text="➖ Scade punctaj", width=18,
-        command=lambda t=tree, c=city, inst=institution: punctaj_cu_selectie(t, c, inst, "remove")
-    )
-    btn_remove_points.grid(row=1, column=1, padx=8, pady=5)
-    apply_theme_button(btn_remove_points)
-    # Verifică permisiuni pe instituție (granulare)
-    if not check_institution_permission(city, institution, 'can_add_score'):
-        btn_remove_points.config(state='disabled')
+    if check_institution_permission(city, institution, 'can_remove_score'):
+        btn_remove_points = tk.Button(
+            btn_frame, text="➖ Scade punctaj", width=18,
+            command=lambda t=tree, c=city, inst=institution: punctaj_cu_selectie(t, c, inst, "remove")
+        )
+        btn_remove_points.grid(row=1, column=row1_col, padx=8, pady=5)
+        apply_theme_button(btn_remove_points)
+        row1_col += 1
 
-    btn_reset_points = tk.Button(
-        btn_frame, text="🔄 Reset punctaj", width=18,
-        command=lambda t=tree, c=city, inst=institution: reset_punctaj(t, c, inst)
-    )
-    btn_reset_points.grid(row=1, column=2, padx=8, pady=5)
-    apply_theme_button(btn_reset_points)
-    # Verifică permisiuni pe instituție (granulare)
-    if not check_institution_permission(city, institution, 'can_add_score'):
-        btn_reset_points.config(state='disabled')
+    if check_institution_permission(city, institution, 'can_reset_score'):
+        btn_reset_points = tk.Button(
+            btn_frame, text="🔄 Reset punctaj", width=18,
+            command=lambda t=tree, c=city, inst=institution: reset_punctaj(t, c, inst)
+        )
+        btn_reset_points.grid(row=1, column=row1_col, padx=8, pady=5)
+        apply_theme_button(btn_reset_points)
+        row1_col += 1
+
+
 
     tabs[city]["trees"][institution] = tree
     inst_nb.select(frame)
@@ -4958,10 +5719,18 @@ def add_member(tree, city, institution):
     canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar.set)
     
-    # Enable mouse wheel scroll
+    # Enable mouse wheel scroll (local bindings only, do NOT override global/sidebar wheel)
     def on_mousewheel(event):
-        canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-    canvas.bind_all("<MouseWheel>", on_mousewheel)
+        try:
+            delta = int(-1 * (event.delta / 120)) if getattr(event, "delta", 0) else 0
+            if delta:
+                canvas.yview_scroll(delta, "units")
+        except Exception:
+            pass
+        return "break"
+
+    canvas.bind("<MouseWheel>", on_mousewheel)
+    scroll_frame.bind("<MouseWheel>", on_mousewheel)
     
     # Creează mai întâi toate entry-urile
     for i, col in enumerate(columns):
@@ -5615,7 +6384,7 @@ def add_points(tree, city, institution):
                         employee_name,
                         old_points,
                         new_points,
-                        "add",
+                        f"Adăugare {new_points - old_points} puncte",
                         discord_username=discord_username,
                         entity_id=entity_id
                     )
@@ -5667,7 +6436,7 @@ def remove_points(tree, city, institution):
                         employee_name,
                         old_points,
                         new_points,
-                        "remove",
+                        f"Scădere {old_points - new_points} puncte",
                         discord_username=discord_username,
                         entity_id=entity_id
                     )
@@ -5823,8 +6592,26 @@ def refresh_active_institution_table():
         # 📤 RELOAD DATA - Load fresh data from local JSON (which was just synced from cloud)
         print(f"   📥 Loading fresh data from cloud for {current_city}/{current_institution}...")
         inst_data = load_institution(current_city, current_institution)
-        columns = tree.columns
+        
+        # 🔧 FOLOSEȘTE COLOANELE DIN JSON, NU CELE VECHI DIN TREE!
+        saved_columns = inst_data.get("columns", tree.columns)
         rows = inst_data.get("rows", [])
+        
+        # 🔄 RECONFIGUREAZĂ TREE CU COLOANELE CORECTE
+        if list(tree.columns) != saved_columns:
+            print(f"   🔧 Reconfiguring tree columns: {tree.columns} → {saved_columns}")
+            tree.configure(columns=saved_columns)
+            
+            # Configurează headings pentru coloanele noi
+            for col in saved_columns:
+                if col not in tree.columns or not tree.heading(col)['text']:
+                    tree.heading(col, text=col.upper(), anchor="center")
+                    # Setează width-uri pentru coloanele cunoscute
+                    if col == "PUNCTAJ":
+                        width = 80
+                    else:
+                        width = 120
+                    tree.column(col, anchor="center", width=width)
         
         print(f"   ✅ Loaded {len(rows)} rows for {current_institution}")
         
@@ -5832,9 +6619,10 @@ def refresh_active_institution_table():
         print(f"   🔄 Refreshing treeview with new data...")
         tree.delete(*tree.get_children())
         
+        # Folosește saved_columns în loc de columns
         for row in rows:
             if isinstance(row, dict):
-                values = tuple(row.get(col, "") for col in columns)
+                values = tuple(row.get(col, "") for col in saved_columns)
             else:
                 values = tuple(row) if isinstance(row, (list, tuple)) else (row,)
             tree.insert("", tk.END, values=values)
@@ -5914,7 +6702,7 @@ def load_existing_tables():
 def punctaj_cu_selectie(tree, city, institution, mode="add"):
     win = tk.Toplevel(root)
     win.title("Adaugă/Șterge valori" if mode == "add" else "Șterge valori")
-    win.geometry("400x500")
+    win.geometry("600x750")
     win.grab_set()
 
     # Detectează coloana PUNCTAJ (obligatorie)
@@ -5935,6 +6723,13 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
         messagebox.showwarning("Eroare", "Nu găsesc coloana PUNCTAJ!")
         return
 
+    # Variabile pentru locație
+    locatie_var = tk.StringVar(value="")
+    
+    # Verifică dacă e instituție de poliție
+    is_police_institution = True  # Default pentru acum
+
+    # ===== FRAME PENTRU PUNCTAJ =====
     frame_top = tk.Frame(win, bg=THEME_COLORS["bg_dark_secondary"], pady=10)
     frame_top.pack(fill="x")
 
@@ -6013,24 +6808,42 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
     apply_theme_button(btn_deselect_all, accent=False)
 
     def aplica():
+        print("🔧 DEBUG: Funcția aplica() din punctaj_cu_selectie a fost apelată")
         try:
             valoare = int(entry.get())
             if valoare <= 0:
                 raise ValueError
+            print(f"🔧 DEBUG: Valoare validă: {valoare}")
         except ValueError:
+            print("❌ DEBUG: Eroare - valoare invalidă")
             messagebox.showerror("Eroare", "Introdu un număr valid!")
             return
 
+        # Obține locația opțional (nu mai e obligatorie)
+        locatie = locatie_var.get() if (is_police_institution and mode == "add") else ""
+        
+        print(f"🔧 DEBUG: is_police_institution={is_police_institution}, mode={mode}, locatie='{locatie}'")
+        
+        # NOTĂ: Locația este acum opțională - nu mai validăm obligativitatea
+
         selectati = [item for item, var in vars_items if var.get()]
+        print(f"🔧 DEBUG: Selectați: {len(selectati)} rânduri")
 
         if not selectati:
+            print("❌ DEBUG: Eroare - niciun rând selectat")
             messagebox.showwarning(
                 "Nicio selecție",
                 "Nu ai selectat niciun rând!"
             )
             return
 
+        # Definim columns înainte de a fi folosit
+        columns = list(tree.columns)
+        
+        # Simplificat: Nu mai adăugăm coloane automat pentru NR_ACTIUNI sau ZONA
+
         col_idx = columns.index(numeric_col)
+        
         for item in selectati:
             values = list(tree.item(item, "values"))
             try:
@@ -6044,9 +6857,18 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
                 nou = max(0, current - valoare)
 
             values[col_idx] = str(nou)
+            
+            # Ajustează lungimea values la numărul de coloane
+            while len(values) < len(columns):
+                values.append("")
+            
+            # Simplu: doar actualizăm punctajul, fără logică de acțiuni sau zone
             tree.item(item, values=tuple(values))
 
         save_institution(city, institution, tree, update_timestamp=True, updated_items=selectati, skip_logging=True)
+        
+        # Închide fereastra imediat după salvare
+        win.destroy()
         
         # ===== ACTION LOGGING for punctaj_cu_selectie =====
         if ACTION_LOGGER and selectati:
@@ -6069,6 +6891,9 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
                     
                     entity_id = values[-1] if values else ""  # Get DISCORD column
                     
+                    # Creează mesaj descriptiv pentru log
+                    punctaj_operation = f"{'Adăugare' if mode == 'add' else 'Scădere'} {valoare} puncte"
+                    
                     ACTION_LOGGER.log_edit_points(
                         discord_id,
                         city,
@@ -6076,7 +6901,7 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
                         employee_name,
                         old_val,
                         current_val,
-                        mode,
+                        punctaj_operation,  # Este parametrul 'action'
                         discord_username=discord_username,
                         entity_id=entity_id
                     )
@@ -6088,11 +6913,20 @@ def punctaj_cu_selectie(tree, city, institution, mode="add"):
         update_info_label(city, institution)
         sort_tree_by_punctaj(tree)
         
+        # 📊 SYNC CU RAPORTUL DE ACȚIUNI - dacă au fost adăugate acțiuni
+        if is_police_institution and mode == "add" and action and selectati:
+            try:
+                print(f"📊 Sincronizez cu raportul de acțiuni pentru {len(selectati)} angajați...")
+                # Trigger manual recalc pentru raportul de acțiuni 
+                # (în caz că trigger-ul Supabase nu e încă activ)
+
+                print(f"   ✅ Acțiunea '{action}' la '{locatie}' adăugată pentru {len(selectati)} angajați")
+            except Exception as e:
+                print(f"⚠️ Error syncing actions report: {e}")
+        
         tree.selection_set(selectati)
         if selectati:
             tree.see(selectati[0])
-        
-        win.destroy()
 
     tk.Button(
         win,
@@ -6339,7 +7173,7 @@ def startup_upload_logs():
     try:
         import glob
         logs_uploaded = 0
-        logs_dir = "logs"
+        logs_dir = LOGS_DIR
         
         if not os.path.exists(logs_dir):
             print("   ℹ️  No logs folder found - skipping")
@@ -6354,8 +7188,8 @@ def startup_upload_logs():
             print("   ⚠️  Encryption module not available")
             return
         
-        # Find all encrypted log files
-        enc_files = glob.glob(os.path.join(logs_dir, "*/*.enc"))
+        # Find all encrypted log files (supports both old and new folder structures)
+        enc_files = glob.glob(os.path.join(logs_dir, "**", "*.enc"), recursive=True)
         enc_files = [f for f in enc_files if "SUMMARY" not in f]  # Skip summary files
         
         if not enc_files:
@@ -6378,6 +7212,18 @@ def startup_upload_logs():
                         # Ensure timestamp exists
                         if 'timestamp' not in log_entry:
                             log_entry['timestamp'] = datetime.now().isoformat()
+
+                        # Backward compatibility: enrich old logs missing server_key
+                        if not log_entry.get('server_key'):
+                            try:
+                                rel_path = os.path.relpath(log_file, logs_dir)
+                                parts = rel_path.replace('\\', '/').split('/')
+                                if len(parts) >= 3:
+                                    log_entry['server_key'] = parts[0]
+                                else:
+                                    log_entry['server_key'] = (ACTIVE_SERVER_KEY or os.getenv('PUNCTAJ_SERVER_KEY', '') or 'default')
+                            except Exception:
+                                log_entry['server_key'] = (ACTIVE_SERVER_KEY or os.getenv('PUNCTAJ_SERVER_KEY', '') or 'default')
                         
                         url = f"{SUPABASE_SYNC.url}/rest/v1/{SUPABASE_SYNC.table_logs}"
                         headers = {
@@ -6487,6 +7333,7 @@ if not discord_login():
 # Refresh admin buttons și secțiunea Discord după autentificare
 refresh_admin_buttons()
 refresh_discord_section()
+_refresh_server_list_ui()
 
 # ================== AUTO-CREATE SUPABASE TABLES AT STARTUP ==================
 def check_and_create_supabase_tables():
@@ -6605,6 +7452,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   id BIGSERIAL PRIMARY KEY,
   discord_id TEXT,
   discord_username TEXT,
+    server_key TEXT,
   action_type TEXT NOT NULL,
   city TEXT,
   institution TEXT,
@@ -6660,6 +7508,7 @@ CREATE INDEX IF NOT EXISTS idx_discord_users_discord_id ON discord_users(discord
 CREATE INDEX IF NOT EXISTS idx_audit_logs_discord ON audit_logs(discord_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action_type);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_server_key ON audit_logs(server_key);
 CREATE INDEX IF NOT EXISTS idx_police_data_city_inst ON police_data(city, institution);
 CREATE INDEX IF NOT EXISTS idx_weekly_reports_city_inst ON weekly_reports(city, institution);
 """

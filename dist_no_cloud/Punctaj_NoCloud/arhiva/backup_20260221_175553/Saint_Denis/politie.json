@@ -1,0 +1,13 @@
+{
+    "columns": [
+        "RANK",
+        "ROLE",
+        "PUNCTAJ"
+    ],
+    "ranks": {
+        "1": "User",
+        "2": "Admin"
+    },
+    "rankuri_desc": "Rank 1: User\nRank 2: Admin",
+    "rows": []
+}

@@ -7,6 +7,7 @@ Logs all user actions to Supabase table and local JSON files with encryption
 import requests
 import json
 import os
+import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -33,6 +34,12 @@ class ActionLogger:
         self.supabase_key = supabase_sync.key
         self.table_logs = supabase_sync.table_logs  # Use configured table name
         self.logs_dir = logs_dir
+        self.pending_queue_file = os.path.join(self.logs_dir, "_pending_audit_logs.jsonl")
+        self.server_key = (
+            os.getenv("PUNCTAJ_SERVER_KEY", "").strip()
+            or supabase_sync.config.get('supabase', 'server_key', fallback='').strip()
+            or "default"
+        )
         
         # Create logs directory if it doesn't exist
         os.makedirs(self.logs_dir, exist_ok=True)
@@ -46,13 +53,14 @@ class ActionLogger:
         }
     
     def _save_local_log(self, log_entry: Dict[str, Any]) -> bool:
-        """Save log entry to local JSON file organized by institution (encrypted)"""
+        """Save log entry to local JSON file organized by server/city/institution (encrypted)"""
         try:
+            server_key = log_entry.get("server_key", self.server_key) or "default"
             city = log_entry.get("city", "unknown")
             institution = log_entry.get("institution", "unknown")
             
-            # Create directory structure: logs/{city}/{institution}.json
-            city_dir = os.path.join(self.logs_dir, city)
+            # Create directory structure: logs/{server_key}/{city}/{institution}.json
+            city_dir = os.path.join(self.logs_dir, server_key, city)
             os.makedirs(city_dir, exist_ok=True)
             
             institution_file = os.path.join(city_dir, f"{institution}.json")
@@ -93,6 +101,96 @@ class ActionLogger:
         except Exception as e:
             print(f"⚠️ Error saving local log: {e}")
             return False
+
+    def _append_pending_log(self, log_entry: Dict[str, Any]) -> None:
+        """Append failed cloud log to pending queue file."""
+        try:
+            os.makedirs(self.logs_dir, exist_ok=True)
+            with open(self.pending_queue_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"⚠️ Error queueing pending log: {e}")
+
+    def _read_pending_logs(self) -> list:
+        """Read pending queue entries (JSONL)."""
+        if not os.path.exists(self.pending_queue_file):
+            return []
+
+        pending = []
+        try:
+            with open(self.pending_queue_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        item = json.loads(line)
+                        if isinstance(item, dict):
+                            pending.append(item)
+                    except Exception:
+                        continue
+        except Exception as e:
+            print(f"⚠️ Error reading pending queue: {e}")
+        return pending
+
+    def _write_pending_logs(self, pending: list) -> None:
+        """Rewrite pending queue after successful flush attempts."""
+        try:
+            if not pending:
+                if os.path.exists(self.pending_queue_file):
+                    os.remove(self.pending_queue_file)
+                return
+
+            with open(self.pending_queue_file, 'w', encoding='utf-8') as f:
+                for item in pending:
+                    f.write(json.dumps(item, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"⚠️ Error writing pending queue: {e}")
+
+    def _send_to_supabase(self, log_entry: Dict[str, Any], retries: int = 3) -> bool:
+        """Send one log entry to Supabase with lightweight retry."""
+        url = f"{self.supabase_url}/rest/v1/{self.table_logs}"
+
+        for attempt in range(1, retries + 1):
+            try:
+                response = requests.post(
+                    url,
+                    headers=self._get_headers(),
+                    json=log_entry,
+                    timeout=8
+                )
+
+                if response.status_code in [201, 200]:
+                    return True
+
+                print(f"⚠️ Supabase insert failed (attempt {attempt}/{retries}) - HTTP {response.status_code}: {response.text}")
+            except requests.exceptions.RequestException as req_err:
+                print(f"⚠️ Supabase network error (attempt {attempt}/{retries}): {req_err}")
+
+            if attempt < retries:
+                time.sleep(0.4 * attempt)
+
+        return False
+
+    def flush_pending_logs(self, max_items: int = 100) -> int:
+        """Flush pending queued logs to Supabase. Returns number uploaded."""
+        pending = self._read_pending_logs()
+        if not pending:
+            return 0
+
+        uploaded = 0
+        remaining = []
+
+        for idx, entry in enumerate(pending):
+            if idx < max_items and self._send_to_supabase(entry, retries=2):
+                uploaded += 1
+            else:
+                remaining.append(entry)
+
+        self._write_pending_logs(remaining)
+        if uploaded:
+            print(f"✅ Flushed pending audit logs: {uploaded}")
+        return uploaded
     
     def _update_global_summary(self, log_entry: Dict[str, Any]) -> bool:
         """Update global summary JSON with the action (encrypted)"""
@@ -143,11 +241,13 @@ class ActionLogger:
                     }
             
             # Add institution modification (safe check)
+            server_key = log_entry.get("server_key", self.server_key) or "default"
             institution = log_entry.get("institution", "unknown")
             if city and city != "unknown" and institution and institution != "unknown":
-                inst_key = f"{city}/{institution}"
+                inst_key = f"{server_key}/{city}/{institution}"
                 if inst_key not in summary["institutions_modified"]:
                     summary["institutions_modified"][inst_key] = {
+                        "server_key": server_key,
                         "city": city,
                         "institution": institution,
                         "actions": []
@@ -163,6 +263,7 @@ class ActionLogger:
                     "timestamp": timestamp,
                     "discord_id": discord_id,
                     "discord_username": discord_username,
+                    "server_key": server_key,
                     "action": action_type,
                     "details": details,
                     "changes": changes
@@ -216,12 +317,18 @@ class ActionLogger:
             bool: True if logged successfully
         """
         try:
-            url = f"{self.supabase_url}/rest/v1/{self.table_logs}"
+            current_server_key = (
+                os.getenv("PUNCTAJ_SERVER_KEY", "").strip()
+                or self.server_key
+                or "default"
+            )
+            self.server_key = current_server_key
             
             # Create log entry with detailed information
             log_entry = {
                 "discord_id": discord_id,
                 "discord_username": discord_username or discord_id,  # Fallback to ID if no username
+                "server_key": current_server_key,
                 "action_type": action_type,
                 "city": city,
                 "institution": institution_name,
@@ -235,33 +342,19 @@ class ActionLogger:
             print(f"📝 Logging: {action_type} | User: {discord_username or discord_id} | Entity: {entity_name} | Table: {self.table_logs}")
             
             # Save locally first
-            self._save_local_log(log_entry)
-            
-            # Then send to Supabase - WITH DEBUG
-            print(f"🌐 Sending to Supabase: {url}")
-            print(f"📤 Headers: {self._get_headers()}")
-            print(f"📦 Payload: {log_entry}")
-            
-            try:
-                response = requests.post(
-                    url,
-                    headers=self._get_headers(),
-                    json=log_entry,
-                    timeout=5
-                )
-                
-                print(f"📥 Response status: {response.status_code}")
-                print(f"📥 Response body: {response.text}")
-                
-                if response.status_code in [201, 200]:
-                    print(f"✅ Log SUCCESS: {action_type} in {city}/{institution_name}")
-                    return True
-                else:
-                    print(f"❌ Log FAILED - HTTP {response.status_code}: {response.text}")
-                    return False
-            except requests.exceptions.RequestException as req_err:
-                print(f"❌ Network error sending to Supabase: {req_err}")
-                return False
+            local_ok = self._save_local_log(log_entry)
+
+            # Try to flush older pending logs first, then this new entry
+            self.flush_pending_logs(max_items=50)
+
+            if self._send_to_supabase(log_entry, retries=3):
+                print(f"✅ Log SUCCESS: {action_type} in {city}/{institution_name}")
+                return True
+
+            # Keep eventual-consistency queue if cloud insert fails now
+            self._append_pending_log(log_entry)
+            print("⚠️ Log queued for retry (_pending_audit_logs.jsonl)")
+            return local_ok
         except Exception as e:
             print(f"❌ Error logging action: {e}")
             import traceback

@@ -345,7 +345,7 @@ class InstitutionPermissionManager:
         return merged
     
     def save_user_institution_permissions(self, discord_id: str, permissions: Dict[str, Dict[str, Dict[str, bool]]]) -> bool:
-        """Save user's institution permissions and auto-initialize new cities/institutions"""
+        """Save institution permissions into user_server_permissions (table 44871)."""
         try:
             print(f"DEBUG save_user_institution_permissions: discord_id={discord_id}")
             print(f"DEBUG: Input permissions={permissions}")
@@ -355,93 +355,191 @@ class InstitutionPermissionManager:
                 "Authorization": f"Bearer {self.supabase_key}",
                 "Content-Type": "application/json"
             }
-            
-            # Get existing granular permissions
-            url = f"{self.supabase_url}/rest/v1/discord_users?discord_id=eq.{discord_id}&select=granular_permissions"
-            response = requests.get(url, headers=headers, timeout=5)
-            
-            existing_granular = {}
-            if response.status_code == 200:
-                data = response.json()
-                if data and len(data) > 0:
-                    perms_data = data[0].get('granular_permissions', {})
-                    if isinstance(perms_data, str):
-                        try:
-                            existing_granular = json.loads(perms_data)
-                        except:
-                            existing_granular = {}
-                    else:
-                        existing_granular = perms_data if isinstance(perms_data, dict) else {}
-            
-            # Extract existing institutions
-            existing = existing_granular.get('institutions', {}) if isinstance(existing_granular, dict) else {}
-            print(f"DEBUG: Existing permissions={existing}")
-            
-            # Get all current cities and institutions
-            all_institutions = self.get_all_institutions_by_city()
-            print(f"DEBUG: All institutions={all_institutions}")
-            
-            # For any NEW cities/institutions, initialize with default False permissions
-            for city, institutions in all_institutions.items():
-                if city not in existing:
-                    existing[city] = {}
-                for institution in institutions:
-                    if institution not in existing[city]:
-                        existing[city][institution] = {
-                            'can_view': False,
-                            'can_edit': False,
-                            'can_delete': False,
-                            'can_add_employee': False,
-                            'can_edit_employee': False,
-                            'can_delete_employee': False,
-                            'can_add_score': False,
-                            'can_reset_scores': False,
-                            'can_deduct_scores': False
-                        }
-            
-            # Merge user's new permissions with existing
-            for city, insts in permissions.items():
-                if city not in existing:
-                    existing[city] = {}
-                for institution, perms in insts.items():
-                    existing[city][institution] = perms
-            
-            print(f"DEBUG: Final merged permissions={existing}")
-            
-            # Rebuild granular_permissions with institutions key
-            existing_granular['institutions'] = existing
-            
-            # Save to Supabase
-            url = f"{self.supabase_url}/rest/v1/discord_users?discord_id=eq.{discord_id}&select=id"
-            print(f"DEBUG: Fetching user ID from {url}")
-            
-            response = requests.get(url, headers=headers, timeout=5)
-            print(f"DEBUG: Get user ID response: status={response.status_code}, data={response.text}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data and len(data) > 0:
-                    user_id = data[0]['id']
-                    print(f"DEBUG: Found user_id={user_id}")
-                    
-                    update_url = f"{self.supabase_url}/rest/v1/discord_users?id=eq.{user_id}"
-                    update_data = {"granular_permissions": json.dumps(existing_granular)}
-                    
-                    print(f"DEBUG: Sending PATCH to {update_url}")
-                    print(f"DEBUG: Update data={update_data}")
-                    
-                    update_response = requests.patch(
-                        update_url,
+
+            permission_mapping = {
+                'can_view': 'can_view_institution',
+                'can_edit': 'can_edit_institution',
+                'can_delete': 'can_delete_institution',
+                'can_add_employee': 'can_add_employee',
+                'can_edit_employee': 'can_edit_employee',
+                'can_delete_employee': 'can_delete_employee',
+                'can_add_score': 'can_add_score',
+                'can_reset_scores': 'can_reset_score',
+                'can_deduct_scores': 'can_remove_score',
+            }
+            managed_codes = set(permission_mapping.values())
+
+            def _get_default_server_id():
+                try:
+                    settings_resp = requests.get(
+                        f"{self.supabase_url}/rest/v1/app_runtime_settings",
                         headers=headers,
-                        json=update_data,
-                        timeout=5
+                        params={
+                            "key": "eq.default_server_key",
+                            "select": "value",
+                            "limit": "1",
+                        },
+                        timeout=5,
                     )
-                    
-                    print(f"DEBUG: PATCH response: status={update_response.status_code}, text={update_response.text}")
-                    return update_response.status_code in [200, 204]
-                else:
-                    print(f"DEBUG: No user found with discord_id={discord_id}")
-            return False
+                    if settings_resp.status_code == 200 and settings_resp.json():
+                        server_key = str(settings_resp.json()[0].get("value") or "").strip()
+                        if server_key:
+                            srv_resp = requests.get(
+                                f"{self.supabase_url}/rest/v1/app_servers",
+                                headers=headers,
+                                params={
+                                    "server_key": f"eq.{server_key}",
+                                    "select": "id",
+                                    "limit": "1",
+                                },
+                                timeout=5,
+                            )
+                            if srv_resp.status_code == 200 and srv_resp.json():
+                                return str(srv_resp.json()[0].get("id") or "").strip()
+                except Exception as e:
+                    print(f"DEBUG: default_server_key lookup failed: {e}")
+
+                try:
+                    fallback_resp = requests.get(
+                        f"{self.supabase_url}/rest/v1/app_servers",
+                        headers=headers,
+                        params={
+                            "is_active": "eq.true",
+                            "select": "id",
+                            "order": "server_name.asc",
+                            "limit": "1",
+                        },
+                        timeout=5,
+                    )
+                    if fallback_resp.status_code == 200 and fallback_resp.json():
+                        return str(fallback_resp.json()[0].get("id") or "").strip()
+                except Exception as e:
+                    print(f"DEBUG: fallback server lookup failed: {e}")
+
+                return ""
+
+            server_id = _get_default_server_id()
+            if not server_id:
+                print("DEBUG: No server_id found for institution permission save")
+                return False
+
+            cities_by_name = {}
+            city_name_by_id = {}
+            try:
+                city_resp = requests.get(
+                    f"{self.supabase_url}/rest/v1/cities",
+                    headers=headers,
+                    params={"select": "id,name"},
+                    timeout=5,
+                )
+                if city_resp.status_code == 200:
+                    for row in city_resp.json() or []:
+                        city_id = row.get("id")
+                        city_name = str(row.get("name") or "").strip()
+                        if city_name:
+                            cities_by_name[city_name.lower()] = city_id
+                        if city_id is not None and city_name:
+                            city_name_by_id[city_id] = city_name
+            except Exception as e:
+                print(f"DEBUG: city lookup failed: {e}")
+
+            institutions_by_key = {}
+            try:
+                inst_resp = requests.get(
+                    f"{self.supabase_url}/rest/v1/institutions",
+                    headers=headers,
+                    params={"select": "id,name,city_id"},
+                    timeout=5,
+                )
+                if inst_resp.status_code == 200:
+                    for row in inst_resp.json() or []:
+                        inst_id = row.get("id")
+                        inst_name = str(row.get("name") or "").strip()
+                        city_id = row.get("city_id")
+                        city_name = city_name_by_id.get(city_id, "")
+                        key = (city_name.lower(), inst_name.lower())
+                        if city_name and inst_name and inst_id is not None:
+                            institutions_by_key[key] = inst_id
+            except Exception as e:
+                print(f"DEBUG: institution lookup failed: {e}")
+
+            existing_resp = requests.get(
+                f"{self.supabase_url}/rest/v1/user_server_permissions",
+                headers=headers,
+                params={
+                    "server_id": f"eq.{server_id}",
+                    "discord_id": f"eq.{discord_id}",
+                    "select": "id,permission_code,institution_name",
+                },
+                timeout=5,
+            )
+            if existing_resp.status_code != 200:
+                print(f"DEBUG: existing permissions fetch failed: {existing_resp.status_code} {existing_resp.text[:300]}")
+                return False
+
+            existing_rows = existing_resp.json() or []
+            for row in existing_rows:
+                code = str(row.get("permission_code") or "").strip()
+                inst_name = str(row.get("institution_name") or "").strip()
+                row_id = row.get("id")
+                if code in managed_codes and inst_name and row_id:
+                    delete_resp = requests.delete(
+                        f"{self.supabase_url}/rest/v1/user_server_permissions?id=eq.{row_id}",
+                        headers=headers,
+                        timeout=5,
+                    )
+                    if delete_resp.status_code not in (200, 204):
+                        print(f"DEBUG: delete existing row failed: {delete_resp.status_code} {delete_resp.text[:300]}")
+                        return False
+
+            rows_to_insert = []
+            for city_name, institutions in (permissions or {}).items():
+                city_label = str(city_name or "").strip()
+                if not city_label:
+                    continue
+
+                city_id = cities_by_name.get(city_label.lower())
+                for inst_name, perm_values in (institutions or {}).items():
+                    institution_label = str(inst_name or "").strip()
+                    if not institution_label:
+                        continue
+
+                    institution_id = institutions_by_key.get((city_label.lower(), institution_label.lower()))
+
+                    for source_perm, enabled in (perm_values or {}).items():
+                        if not enabled:
+                            continue
+                        mapped_code = permission_mapping.get(source_perm)
+                        if not mapped_code:
+                            continue
+
+                        row = {
+                            "server_id": server_id,
+                            "discord_id": discord_id,
+                            "permission_code": mapped_code,
+                            "city_name": city_label,
+                            "institution_name": institution_label,
+                            "granted": True,
+                        }
+                        if city_id is not None:
+                            row["city_id"] = city_id
+                        if institution_id is not None:
+                            row["institution_id"] = institution_id
+                        rows_to_insert.append(row)
+
+            for row in rows_to_insert:
+                insert_resp = requests.post(
+                    f"{self.supabase_url}/rest/v1/user_server_permissions",
+                    headers=headers,
+                    json=row,
+                    timeout=5,
+                )
+                if insert_resp.status_code not in (200, 201):
+                    print(f"DEBUG: insert permission row failed: {insert_resp.status_code} {insert_resp.text[:300]}")
+                    return False
+
+            print(f"DEBUG: Saved {len(rows_to_insert)} institution permission rows in user_server_permissions")
+            return True
         except Exception as e:
             print(f"Error saving institution permissions: {e}")
             import traceback
@@ -989,17 +1087,54 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
             "Content-Type": "application/json"
         }
         
-        # Folosim coloanele care exista în discord_users: id, discord_id, username, is_superuser, is_admin, can_view, can_edit, can_delete
-        url = f"{supabase_sync.url}/rest/v1/discord_users?select=id,discord_id,username,is_superuser,is_admin,can_view,can_edit,can_delete"
-        print(f"DEBUG: Fetching users from: {url}")
-        response = requests.get(url, headers=headers, timeout=5)
+        # Compat: încearcă surse multiple (schema veche + schema nouă)
+        sources = [
+            ("discord_users", "id,discord_id,username,is_superuser,is_admin,can_view,can_edit,can_delete"),
+            ("discord_login_users", "id,discord_id,username"),
+            ("v_permission_assignable_users", "discord_id,username")
+        ]
+
+        response = None
+        users = []
+
+        for table_name, select_fields in sources:
+            url = f"{supabase_sync.url}/rest/v1/{table_name}?select={select_fields}"
+            print(f"DEBUG: Fetching users from: {url}")
+            response = requests.get(url, headers=headers, timeout=5)
+
+            print(f"DEBUG: Response status ({table_name}): {response.status_code}")
+            print(f"DEBUG: Response text ({table_name}): {response.text[:500]}")
+
+            if response.status_code != 200:
+                continue
+
+            raw_users = response.json() or []
+            if not raw_users:
+                continue
+
+            deduped = {}
+            for row in raw_users:
+                discord_id = str(row.get('discord_id', '')).strip()
+                username = str(row.get('username', '')).strip()
+                if not discord_id or not username:
+                    continue
+                deduped[discord_id] = {
+                    'id': row.get('id'),
+                    'discord_id': discord_id,
+                    'username': username,
+                    'is_superuser': bool(row.get('is_superuser', False)),
+                    'is_admin': bool(row.get('is_admin', False)),
+                    'can_view': bool(row.get('can_view', False)),
+                    'can_edit': bool(row.get('can_edit', False)),
+                    'can_delete': bool(row.get('can_delete', False)),
+                }
+
+            users = list(deduped.values())
+            if users:
+                print(f"DEBUG: Loaded {len(users)} users from {table_name}")
+                break
         
-        print(f"DEBUG: Response status: {response.status_code}")
-        print(f"DEBUG: Response text: {response.text[:500]}")
-        
-        if response.status_code == 200:
-            users = response.json()
-            print(f"DEBUG: Loaded {len(users)} users")
+        if response is not None and response.status_code == 200 and users:
             
             # Function to determine role from boolean columns
             def get_user_role(user_data):
@@ -1026,52 +1161,79 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
             # Create tabbed interface - 4 NIVELURI DE PERMISIUNI
             main_notebook = ttk.Notebook(permissions_window)
             main_notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+            def create_scrollable_tab_content(tab_parent):
+                """Create a scrollable content frame for a notebook tab."""
+                wrapper = ttk.Frame(tab_parent)
+                wrapper.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+                canvas = tk.Canvas(wrapper, bg="white", highlightthickness=0)
+                scrollbar = ttk.Scrollbar(wrapper, orient="vertical", command=canvas.yview)
+                canvas.configure(yscrollcommand=scrollbar.set)
+
+                inner_frame = ttk.Frame(canvas)
+                canvas_window_id = canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+
+                def _on_inner_configure(_event):
+                    canvas.configure(scrollregion=canvas.bbox("all"))
+
+                def _on_canvas_configure(event):
+                    try:
+                        canvas.itemconfigure(canvas_window_id, width=event.width)
+                    except Exception:
+                        pass
+
+                def _on_mousewheel(event):
+                    try:
+                        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                    except Exception:
+                        pass
+
+                def _bind_mousewheel(_event=None):
+                    try:
+                        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+                    except Exception:
+                        pass
+
+                def _unbind_mousewheel(_event=None):
+                    try:
+                        canvas.unbind_all("<MouseWheel>")
+                    except Exception:
+                        pass
+
+                inner_frame.bind("<Configure>", _on_inner_configure)
+                canvas.bind("<Configure>", _on_canvas_configure)
+                canvas.bind("<Enter>", _bind_mousewheel)
+                canvas.bind("<Leave>", _unbind_mousewheel)
+                inner_frame.bind("<Enter>", _bind_mousewheel)
+                inner_frame.bind("<Leave>", _unbind_mousewheel)
+
+                canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+                return inner_frame
             
             # TAB 1: Admin Permissions
             admin_tab = ttk.Frame(main_notebook)
             main_notebook.add(admin_tab, text="🔐 Admin")
-            admin_content_frame = ttk.Frame(admin_tab)
-            admin_content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            admin_content_frame = create_scrollable_tab_content(admin_tab)
             
             # TAB 2: Global Permissions
             global_tab = ttk.Frame(main_notebook)
             main_notebook.add(global_tab, text="🌍 Global")
-            global_content_frame = ttk.Frame(global_tab)
-            global_content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            global_content_frame = create_scrollable_tab_content(global_tab)
             
             # TAB 3: City Level Permissions
             city_tab = ttk.Frame(main_notebook)
             main_notebook.add(city_tab, text="🏙️ Orașe")
-            city_content_frame = ttk.Frame(city_tab)
-            city_content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            city_content_frame = create_scrollable_tab_content(city_tab)
             
             # TAB 4: Institution Permissions
             if institution_perm_manager:
                 inst_tab = ttk.Frame(main_notebook)
                 main_notebook.add(inst_tab, text="🏢 Instituții")
-                
-                # Create scrollable frame for institutions
-                canvas = tk.Canvas(inst_tab, bg="white", highlightthickness=0)
-                scrollbar = ttk.Scrollbar(inst_tab, orient="vertical", command=canvas.yview)
-                
-                inner_frame = ttk.Frame(canvas)
-                inner_frame.bind(
-                    "<Configure>",
-                    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-                )
-                
-                canvas.create_window((0, 0), window=inner_frame, anchor="nw")
-                canvas.configure(yscrollcommand=scrollbar.set)
-                
-                # Allow mousewheel scrolling
-                def _on_mousewheel(event):
-                    canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-                canvas.bind_all("<MouseWheel>", _on_mousewheel)
-                
-                canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
-                scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-                
-                inst_content_frame = inner_frame
+
+                inst_content_frame = create_scrollable_tab_content(inst_tab)
             else:
                 inst_content_frame = None
             
@@ -1295,26 +1457,6 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                     command=save_institution_permissions
                 ).pack(side=tk.LEFT, padx=5)
                 
-                def sync_all_permissions():
-                    """Sync and initialize permissions for all users"""
-                    if messagebox.askyesno("Sincronizare", "⚠️ Aceasta va inițializa permisiunile pentru toți utilizatorii.\n\nContinuă?"):
-                        try:
-                            initialized, total = inst_manager.initialize_all_user_permissions()
-                            messagebox.showinfo(
-                                "Succes",
-                                f"✅ Sincronizare completă!\n\n"
-                                f"👥 Utilizatori procesați: {initialized}/{total}\n"
-                                f"(Înlocuiți cu permisiuni default pentru instituții lipsă)"
-                            )
-                        except Exception as e:
-                            messagebox.showerror("Eroare", f"❌ Eroare la sincronizare: {str(e)}")
-                
-                ttk.Button(
-                    button_frame,
-                    text="🔄 Sincronizează Toti",
-                    command=sync_all_permissions
-                ).pack(side=tk.LEFT, padx=5)
-                
                 print(f"DEBUG: UI created successfully for {username}")
             
             def create_admin_tab_content(parent, user_data):
@@ -1325,6 +1467,37 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                 var_see_admin_button = tk.BooleanVar()
                 var_see_admin_panel = tk.BooleanVar()
                 var_see_permissions_button = tk.BooleanVar()
+
+                def load_server_visibility_for_user(target_discord_id):
+                    servers = []
+                    visible_server_ids = set()
+                    try:
+                        servers_response = requests.get(
+                            f"{supabase_sync.url}/rest/v1/app_servers?select=id,server_key,server_name,is_active&order=server_name.asc",
+                            headers=headers,
+                            timeout=5
+                        )
+                        if servers_response.status_code == 200:
+                            servers = servers_response.json() or []
+                        else:
+                            print(f"DEBUG: app_servers fetch failed: {servers_response.status_code} {servers_response.text[:300]}")
+
+                        visible_response = requests.get(
+                            f"{supabase_sync.url}/rest/v1/user_server_permissions?select=server_id&discord_id=eq.{target_discord_id}&permission_code=eq.can_view_server&granted=eq.true",
+                            headers=headers,
+                            timeout=5
+                        )
+                        if visible_response.status_code == 200:
+                            for row in (visible_response.json() or []):
+                                server_id = str(row.get('server_id', '')).strip()
+                                if server_id:
+                                    visible_server_ids.add(server_id)
+                        else:
+                            print(f"DEBUG: user_server_permissions(can_view_server) fetch failed: {visible_response.status_code} {visible_response.text[:300]}")
+                    except Exception as e:
+                        print(f"DEBUG: Eroare load_server_visibility_for_user: {e}")
+
+                    return servers, visible_server_ids
                 
                 # Citit permisiunile salvate din Supabase
                 try:
@@ -1387,13 +1560,56 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                     text="👁️ Poate VEDEA 🔐 Permisiuni Utilizatori",
                     variable=var_see_permissions_button
                 ).pack(anchor=tk.W, padx=20, pady=3)
+
+                ttk.Separator(parent, orient="horizontal").pack(fill=tk.X, padx=20, pady=15)
+                ttk.Label(parent, text="🖥️ Poate vizualiza server", font=("Segoe UI", 10, "bold")).pack(padx=10, pady=(10, 5))
+
+                server_visibility_vars = {}
+                servers, visible_server_ids = load_server_visibility_for_user(discord_id)
+
+                if servers:
+                    servers_frame = ttk.Frame(parent)
+                    servers_frame.pack(fill=tk.X, padx=20, pady=(0, 6))
+
+                    for server in servers:
+                        server_id = str(server.get('id', '')).strip()
+                        server_key = str(server.get('server_key', '')).strip() or 'unknown'
+                        server_name = str(server.get('server_name', '')).strip() or server_key
+                        is_active = bool(server.get('is_active', True))
+
+                        if not server_id:
+                            continue
+
+                        label = f"{server_name} ({server_key})"
+                        if not is_active:
+                            label = f"{label} [INACTIV]"
+
+                        var_visible = tk.BooleanVar(value=(server_id in visible_server_ids))
+                        server_visibility_vars[server_id] = {
+                            'var': var_visible,
+                            'server_key': server_key,
+                            'server_name': server_name
+                        }
+
+                        ttk.Checkbutton(
+                            servers_frame,
+                            text=f"👁️ {label}",
+                            variable=var_visible
+                        ).pack(anchor=tk.W, padx=5, pady=2)
+                else:
+                    ttk.Label(
+                        parent,
+                        text="⚠️ Nu există servere înregistrate în app_servers",
+                        foreground="gray"
+                    ).pack(anchor=tk.W, padx=20, pady=4)
                 
                 return {
                     'can_manage_user_permissions': var_manage, 
                     'can_revoke_user_permissions': var_revoke,
                     'can_see_admin_button': var_see_admin_button,
                     'can_see_admin_panel': var_see_admin_panel,
-                    'can_see_user_permissions_button': var_see_permissions_button
+                    'can_see_user_permissions_button': var_see_permissions_button,
+                    '__server_visibility__': server_visibility_vars
                 }
             
             def create_global_tab_content(parent, user_data):
@@ -1588,12 +1804,85 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                 username = permissions_window.selected_user.get('username', 'Unknown')
                 
                 try:
+                    def save_server_visibility_permissions(target_discord_id, server_visibility):
+                        if not isinstance(server_visibility, dict):
+                            return
+
+                        try:
+                            current_rows_response = requests.get(
+                                f"{supabase_sync.url}/rest/v1/user_server_permissions?select=id,server_id&discord_id=eq.{target_discord_id}&permission_code=eq.can_view_server",
+                                headers=headers,
+                                timeout=5
+                            )
+                            if current_rows_response.status_code != 200:
+                                print(f"DEBUG: cannot load existing can_view_server rows: {current_rows_response.status_code} {current_rows_response.text[:300]}")
+                                return
+
+                            current_rows = current_rows_response.json() or []
+                            existing_by_server = {}
+                            for row in current_rows:
+                                row_id = row.get('id')
+                                server_id = str(row.get('server_id', '')).strip()
+                                if row_id and server_id:
+                                    existing_by_server.setdefault(server_id, []).append(row_id)
+
+                            selected_server_ids = {
+                                server_id
+                                for server_id, meta in server_visibility.items()
+                                if meta.get('var') is not None and bool(meta['var'].get())
+                            }
+
+                            actor_discord_id = None
+                            try:
+                                actor_discord_id = discord_auth.get_discord_id() if discord_auth else None
+                            except Exception:
+                                actor_discord_id = None
+
+                            for server_id in selected_server_ids:
+                                if server_id in existing_by_server:
+                                    continue
+
+                                payload = {
+                                    "server_id": server_id,
+                                    "discord_id": target_discord_id,
+                                    "permission_code": "can_view_server",
+                                    "granted": True,
+                                    "granted_by": actor_discord_id,
+                                }
+                                ins = requests.post(
+                                    f"{supabase_sync.url}/rest/v1/user_server_permissions",
+                                    headers=headers,
+                                    json=payload,
+                                    timeout=5
+                                )
+                                if ins.status_code not in (200, 201):
+                                    print(f"DEBUG: insert can_view_server failed for {server_id}: {ins.status_code} {ins.text[:300]}")
+
+                            for server_id, row_ids in existing_by_server.items():
+                                if server_id in selected_server_ids:
+                                    continue
+                                for row_id in row_ids:
+                                    dele = requests.delete(
+                                        f"{supabase_sync.url}/rest/v1/user_server_permissions?id=eq.{row_id}",
+                                        headers=headers,
+                                        timeout=5
+                                    )
+                                    if dele.status_code not in (200, 204):
+                                        print(f"DEBUG: delete can_view_server failed for row {row_id}: {dele.status_code} {dele.text[:300]}")
+                        except Exception as e:
+                            print(f"DEBUG: save_server_visibility_permissions error: {e}")
+
                     # 1. Salvează Admin permissions
                     if hasattr(permissions_window, 'admin_vars'):
                         for perm_key, var in permissions_window.admin_vars.items():
+                            if str(perm_key).startswith('__'):
+                                continue
                             hierarchy_perm_manager.set_global_permission(
                                 discord_id, perm_key, var.get()
                             )
+
+                        server_visibility = permissions_window.admin_vars.get('__server_visibility__', {})
+                        save_server_visibility_permissions(discord_id, server_visibility)
                     
                     # 2. Salvează Global permissions
                     if hasattr(permissions_window, 'global_vars'):
@@ -1640,7 +1929,18 @@ def open_granular_permissions_panel(root, supabase_sync, discord_auth, data_dir:
                         # Collect all permission changes
                         all_perms_changed = {}
                         if hasattr(permissions_window, 'admin_vars'):
-                            all_perms_changed.update({k: v.get() for k, v in permissions_window.admin_vars.items()})
+                            for k, v in permissions_window.admin_vars.items():
+                                if str(k).startswith('__'):
+                                    continue
+                                all_perms_changed[k] = v.get()
+
+                            server_visibility = permissions_window.admin_vars.get('__server_visibility__', {})
+                            if isinstance(server_visibility, dict):
+                                all_perms_changed['can_view_server'] = [
+                                    meta.get('server_key')
+                                    for _server_id, meta in server_visibility.items()
+                                    if meta.get('var') is not None and bool(meta['var'].get())
+                                ]
                         if hasattr(permissions_window, 'global_vars'):
                             all_perms_changed.update({k: v.get() for k, v in permissions_window.global_vars.items()})
                         if hasattr(permissions_window, 'city_vars'):

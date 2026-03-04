@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-02-28 13:09:47",
+    "last_punctaj_update": "2026-03-01 17:53:00",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -31,8 +31,8 @@
             "SERIE DE BULETIN": "R87G65U68",
             "RANK": "5",
             "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "44",
-            "ULTIMA_MOD": "2026-02-28 13:06:52"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "nikolas",
@@ -40,8 +40,8 @@
             "SERIE DE BULETIN": "V70S69S35",
             "RANK": "2",
             "ROLE": "Caporal",
-            "PUNCTAJ": "40",
-            "ULTIMA_MOD": "2026-02-28 13:06:52"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -49,8 +49,8 @@
             "SERIE DE BULETIN": "S79A64B71",
             "RANK": "7",
             "ROLE": "Sherif",
-            "PUNCTAJ": "39",
-            "ULTIMA_MOD": "2026-02-28 13:06:52"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "Sintact",
@@ -58,8 +58,8 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "31",
-            "ULTIMA_MOD": "2026-02-28 13:05:54"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "Ion.policarpov",
@@ -67,8 +67,8 @@
             "SERIE DE BULETIN": "W26G69Z92",
             "RANK": "3",
             "ROLE": "Sergent",
-            "PUNCTAJ": "21",
-            "ULTIMA_MOD": "2026-02-28 13:06:52"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "Aly Baba",
@@ -76,8 +76,8 @@
             "SERIE DE BULETIN": "I60F89C81",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "18",
-            "ULTIMA_MOD": "2026-02-28 13:05:04"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "tucurel",
@@ -85,8 +85,8 @@
             "SERIE DE BULETIN": "I42I66B26",
             "RANK": "3",
             "ROLE": "Sergent",
-            "PUNCTAJ": "14",
-            "ULTIMA_MOD": "2026-02-28 13:06:52"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         },
         {
             "DISCORD": "RemusKTMS",
@@ -94,8 +94,8 @@
             "SERIE DE BULETIN": "K83I84P85",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "10",
-            "ULTIMA_MOD": "2026-02-28 13:09:47"
+            "PUNCTAJ": 0,
+            "ULTIMA_MOD": "2026-03-01 17:53:00"
         }
     ]
 }

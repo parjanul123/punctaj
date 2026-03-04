@@ -248,19 +248,20 @@ class WeeklyReportScheduler:
                 "archived_at": datetime.now().isoformat()
             }
             
-            # Use REST API to insert into weekly_reports
+            # Use REST API to insert into configured weekly reports table
             headers = {
                 "apikey": SUPABASE_SYNC.key,
                 "Authorization": f"Bearer {SUPABASE_SYNC.key}",
                 "Content-Type": "application/json"
             }
             
-            url = f"{SUPABASE_SYNC.url}/rest/v1/weekly_reports"
+            weekly_table = getattr(SUPABASE_SYNC, "table_weekly_reports", "weekly_reports")
+            url = f"{SUPABASE_SYNC.url}/rest/v1/{weekly_table}"
             response = requests.post(url, json=report_json, headers=headers)
             
             if response.status_code == 201:
                 logger.info(f"✅ Saved to Supabase: {city}/{institution} ({len(employees)} employees)")
-                print(f"   ✅ Saved to weekly_reports: {city}/{institution}")
+                print(f"   ✅ Saved to {weekly_table}: {city}/{institution}")
                 return True
             else:
                 logger.warning(f"⚠️ Failed to save to Supabase: {city}/{institution} - Status: {response.status_code}")

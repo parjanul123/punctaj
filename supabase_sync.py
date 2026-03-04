@@ -81,7 +81,9 @@ class SupabaseSync:
         self.key = self.config.get('supabase', 'key', fallback=None)
         self.table_sync = self.config.get('supabase', 'table_sync', fallback='data')
         self.table_logs = self.config.get('supabase', 'table_logs', fallback='logs')
+        self.table_weekly_reports = self.config.get('supabase', 'table_weekly_reports', fallback='weekly_reports')
         self.table_users = self.config.get('supabase', 'table_users', fallback='users')
+        self.table_login_users = self.config.get('supabase', 'table_login_users', fallback='discord_login_users')
         
         # Sync settings
         self.enabled = self.config.getboolean('sync', 'enabled', fallback=True)
@@ -339,6 +341,7 @@ class SupabaseSync:
                     
                     if response.status_code in [200, 204]:
                         print(f"✅ User last_login updated in Supabase")
+                        self._sync_login_users_table(discord_username, discord_id)
                         return True
                     else:
                         print(f"⚠️ Failed to update user last_login: HTTP {response.status_code}")
@@ -363,9 +366,7 @@ class SupabaseSync:
                         'is_admin': False,
                         'can_view': False,
                         'can_edit': False,
-                        'can_delete': False,
-                        # Default empty granular permissions
-                        'granular_permissions': '{}'
+                        'can_delete': False
                     }
                     
                     # Insert new user
@@ -383,6 +384,7 @@ class SupabaseSync:
                         print(f"   Discord ID: {discord_id}")
                         print(f"   Initial Permissions: NONE (role: VIEWER)")
                         print(f"   Status: ✅ Ready - Admin can assign permissions")
+                        self._sync_login_users_table(discord_username, discord_id)
                         return True
                     else:
                         print(f"❌ Failed to create user in Supabase: HTTP {response.status_code}")
@@ -410,6 +412,66 @@ class SupabaseSync:
             print(f"❌ Failed to register user in Supabase: {e}")
             import traceback
             traceback.print_exc()
+            return False
+
+    def _sync_login_users_table(self, discord_username: str, discord_id: str) -> bool:
+        """Mirror authenticated users into a simple login table (discord_id + username)."""
+        if not self.enabled or not self.url:
+            return False
+
+        table_name = (self.table_login_users or "").strip()
+        if not table_name:
+            return False
+
+        try:
+            url = f"{self.url}/rest/v1/{table_name}"
+            check_url = f"{url}?discord_id=eq.{discord_id}&select=discord_id"
+
+            try:
+                response = requests.get(check_url, headers=self.headers, timeout=5)
+            except requests.exceptions.Timeout:
+                time.sleep(1)
+                response = requests.get(check_url, headers=self.headers, timeout=5)
+
+            if response.status_code != 200:
+                print(f"⚠️ Login mirror skipped: table '{table_name}' unavailable (HTTP {response.status_code})")
+                return False
+
+            rows = response.json() if response.text else []
+            minimal_payload = {
+                'discord_id': str(discord_id),
+                'username': discord_username
+            }
+
+            if rows and len(rows) > 0:
+                update_url = f"{url}?discord_id=eq.{discord_id}"
+                try:
+                    patch_response = requests.patch(update_url, json=minimal_payload, headers=self.headers, timeout=5)
+                except requests.exceptions.Timeout:
+                    time.sleep(1)
+                    patch_response = requests.patch(update_url, json=minimal_payload, headers=self.headers, timeout=5)
+
+                if patch_response.status_code in [200, 204]:
+                    return True
+
+                print(f"⚠️ Failed to update login mirror table '{table_name}': HTTP {patch_response.status_code}")
+                return False
+
+            try:
+                post_response = requests.post(url, json=minimal_payload, headers=self.headers, timeout=5)
+            except requests.exceptions.Timeout:
+                time.sleep(1)
+                post_response = requests.post(url, json=minimal_payload, headers=self.headers, timeout=5)
+
+            if post_response.status_code in [200, 201]:
+                print(f"✅ Login user mirrored to '{table_name}': {discord_username} ({discord_id})")
+                return True
+
+            print(f"⚠️ Failed to insert login mirror table '{table_name}': HTTP {post_response.status_code}")
+            return False
+
+        except Exception as e:
+            print(f"⚠️ Login mirror sync error: {e}")
             return False
     
     def sync_data(self, city: str, institution: str, data: Dict, discord_auth_obj=None) -> bool:

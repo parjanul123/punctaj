@@ -1,0 +1,28 @@
+{
+    "archived_at": "2026-03-01 18:00:49",
+    "institution": "Politie",
+    "city": "Valentine",
+    "reset_by": "parjanu",
+    "discord_id": "703316932232872016",
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "SERIE DE BULETIN",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "rows": [
+        {
+            "DISCORD": "vlp",
+            "NUME IC": "Vulpe Fuchs",
+            "SERIE DE BULETIN": "Y37I61A62",
+            "RANK": "7",
+            "ROLE": "Sheriff",
+            "PUNCTAJ": "77",
+            "ULTIMA_MOD": "2026-02-22 17:01:03"
+        }
+    ],
+    "employee_count": 1
+}

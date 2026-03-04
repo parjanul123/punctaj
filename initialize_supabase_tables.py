@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   id BIGSERIAL PRIMARY KEY,
   discord_id TEXT,
   discord_username TEXT,
+    server_key TEXT,
   action_type TEXT NOT NULL,
   city TEXT,
   institution TEXT,
@@ -168,6 +169,7 @@ CREATE INDEX IF NOT EXISTS idx_discord_users_discord_id ON discord_users(discord
 CREATE INDEX IF NOT EXISTS idx_audit_logs_discord ON audit_logs(discord_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action_type);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_server_key ON audit_logs(server_key);
 CREATE INDEX IF NOT EXISTS idx_police_data_city_inst ON police_data(city, institution);
 CREATE INDEX IF NOT EXISTS idx_weekly_reports_city_inst ON weekly_reports(city, institution);
 CREATE INDEX IF NOT EXISTS idx_weekly_reports_week ON weekly_reports(week_start, week_end);

@@ -7,7 +7,7 @@ Manages Discord login with webhook support for data synchronization
 import os
 import json
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Set, Tuple
 from urllib.parse import urlencode, unquote
 from datetime import datetime, timedelta
 import webbrowser
@@ -44,6 +44,20 @@ class DiscordAuth:
     DISCORD_TOKEN_URL = "https://discord.com/api/oauth2/token"
     DISCORD_USER_URL = "https://discord.com/api/users/@me"
     DISCORD_GUILD_URL = "https://discord.com/api/users/@me/guilds"
+
+    @staticmethod
+    def _env_force_all_superusers() -> bool:
+        """Return True when app runs in force-all-superusers mode."""
+        return os.getenv("PUNCTAJ_FORCE_ALL_SUPERUSERS", "0").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
+
+    @staticmethod
+    def _env_no_cloud_db() -> bool:
+        """Return True when cloud DB/Supabase integration must be disabled."""
+        return os.getenv("PUNCTAJ_NO_CLOUD_DB", "0").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
     
     def __init__(self, client_id: str, client_secret: str, redirect_uri: str = "http://localhost:8888/callback"):
         """
@@ -67,6 +81,8 @@ class DiscordAuth:
         self.user_role = "viewer"  # Default role: viewer
         self._is_superuser = False
         self._is_admin = False
+        self._force_all_superusers = self._env_force_all_superusers()
+        self._no_cloud_db = self._env_no_cloud_db()
         
         # State for CSRF protection
         self.state = None
@@ -76,6 +92,12 @@ class DiscordAuth:
         
         # Cached granular permissions
         self._cached_granular_permissions = {}
+        self._server_key = os.getenv("PUNCTAJ_SERVER_KEY", "default").strip() or "default"
+        self._scoped_permissions_loaded = False
+        self._global_permissions: Set[str] = set()
+        self._city_permissions: Dict[str, Set[str]] = {}
+        self._institution_permissions: Dict[Tuple[str, str], Set[str]] = {}
+        self._cached_accessible_servers = []
         
         # Multi-device auth tracking
         self._auth_start_time = None
@@ -92,6 +114,20 @@ class DiscordAuth:
         # NOTE: Discord token is NOT cached
         # User must authenticate fresh every time app starts
         # This ensures always fresh permission check and role verification
+        if self._force_all_superusers:
+            self._is_superuser = True
+            self._is_admin = True
+            self.user_role = "superuser"
+            _log_auth_debug("👑 FORCE MODE ACTIVE: all authenticated users are SUPERUSER")
+
+    def _apply_force_superuser_mode(self) -> bool:
+        """Apply force mode flags and return True when enabled."""
+        if self._force_all_superusers:
+            self._is_superuser = True
+            self._is_admin = True
+            self.user_role = "superuser"
+            return True
+        return False
     
     def get_auth_url(self) -> str:
         """Generates the Discord OAuth2 authorization URL"""
@@ -208,6 +244,10 @@ class DiscordAuth:
     
     def _save_to_supabase(self):
         """Save Discord user info to Supabase users table and fetch role"""
+        if self._no_cloud_db:
+            _log_auth_debug("ℹ️ NO-CLOUD mode: skipping Supabase user save/role fetch")
+            return
+
         try:
             # Try to import and use SupabaseSync if available
             try:
@@ -254,6 +294,8 @@ class DiscordAuth:
                     
                     # Fetch user role from Supabase
                     self._fetch_user_role_from_supabase(user_id, supabase)
+                    # Load scoped permissions (server/city/institution) from new tables
+                    self._load_scoped_permissions_from_supabase(user_id, supabase)
                     
             except ImportError:
                 print("[WARNING] SupabaseSync module not available - user not saved to Supabase")
@@ -264,6 +306,13 @@ class DiscordAuth:
     def _fetch_user_role_from_supabase(self, user_id: str, supabase=None):
         """Fetch user role and admin status from Supabase discord_users table"""
         _log_auth_debug(f"[DEBUG] _fetch_user_role_from_supabase called with user_id={user_id}, supabase={supabase}")
+        if self._no_cloud_db:
+            _log_auth_debug("ℹ️ NO-CLOUD mode: skipped Supabase role fetch")
+            return
+
+        if self._apply_force_superuser_mode():
+            _log_auth_debug("👑 Force mode: skipped role fetch from Supabase")
+            return
         try:
             if supabase is None:
                 _log_auth_debug(f"[DEBUG] Supabase is None, initializing...")
@@ -363,13 +412,13 @@ class DiscordAuth:
                                 else:
                                     self.user_role = "viewer"
                                     _log_auth_debug(f"👁️  User role: VIEWER (read-only)")
+                        else:
+                            _log_auth_debug("[DEBUG] No rows in discord_users; role will be resolved from scoped/global permissions")
                     else:
-                        _log_auth_debug(f"[DEBUG] No data returned from API")
-                        # User not found - default to viewer (no permissions)
-                        self.user_role = "viewer"
-                        self._is_superuser = False
-                        self._is_admin = False
-                        _log_auth_debug(f"👁️  User role: VIEWER (default - no permissions yet)")
+                        _log_auth_debug(
+                            f"[DEBUG] discord_users lookup unavailable (HTTP {response.status_code}); "
+                            f"role will be resolved from scoped/global permissions"
+                        )
                 except Exception as req_error:
                     _log_auth_debug(f"[DEBUG] Request error: {req_error}")
                     import traceback
@@ -380,6 +429,343 @@ class DiscordAuth:
             _log_auth_debug(f"[DEBUG] Exception in _fetch_user_role_from_supabase: {e}")
             import traceback
             traceback.print_exc()
+
+    def _normalize_permission_code(self, permission_code: str) -> str:
+        aliases = {
+            "can_add_city": "can_add_cities",
+            "can_edit_city": "can_edit_cities",
+            "can_delete_city": "can_delete_cities",
+            "add_cities": "can_add_cities",
+            "edit_cities": "can_edit_cities",
+            "delete_cities": "can_delete_cities",
+        }
+        return aliases.get(permission_code, permission_code)
+
+    def _ensure_scoped_permissions_loaded(self):
+        if self._scoped_permissions_loaded:
+            return
+        user_id = self.get_discord_id()
+        if user_id:
+            self._load_scoped_permissions_from_supabase(user_id)
+
+    def _has_scoped_permission(self, permission_code: str, city_name: str = None, institution_name: str = None) -> bool:
+        permission_code = self._normalize_permission_code(permission_code)
+
+        if self._apply_force_superuser_mode():
+            return True
+
+        if self._is_superuser:
+            return True
+
+        self._ensure_scoped_permissions_loaded()
+
+        if permission_code in self._global_permissions:
+            return True
+
+        if city_name and permission_code in self._city_permissions.get(city_name, set()):
+            return True
+
+        if city_name and institution_name and permission_code in self._institution_permissions.get((city_name, institution_name), set()):
+            return True
+
+        return False
+
+    def _load_scoped_permissions_from_supabase(self, user_id: str, supabase=None) -> bool:
+        """Load permissions from app_servers + user_server_permissions (multi-server model)."""
+        if self._no_cloud_db or not user_id:
+            return False
+
+        # Reset cache before reload
+        self._global_permissions = set()
+        self._city_permissions = {}
+        self._institution_permissions = {}
+        self._cached_granular_permissions = {}
+        self._scoped_permissions_loaded = False
+
+        try:
+            if supabase is None:
+                try:
+                    from supabase_sync import SupabaseSync
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    cwd = os.getcwd()
+                    config_paths = [
+                        os.path.join(script_dir, "supabase_config.ini"),
+                        os.path.join(cwd, "supabase_config.ini"),
+                        os.path.join(os.path.dirname(script_dir), "supabase_config.ini"),
+                        "supabase_config.ini"
+                    ]
+                    seen = set()
+                    config_paths = [p for p in config_paths if not (p in seen or seen.add(p))]
+                    for path in config_paths:
+                        if path and os.path.exists(path):
+                            supabase = SupabaseSync(path)
+                            break
+                except Exception as e:
+                    _log_auth_debug(f"[DEBUG] Could not init Supabase for scoped permissions: {e}")
+                    return False
+
+            if not supabase:
+                return False
+
+            try:
+                self._server_key = supabase.config.get('supabase', 'server_key', fallback=self._server_key).strip() or self._server_key
+            except Exception:
+                pass
+
+            headers = {
+                "apikey": supabase.key,
+                "Authorization": f"Bearer {supabase.key}",
+                "Content-Type": "application/json"
+            }
+
+            # Global superuser check (independent of server)
+            global_superuser_url = (
+                f"{supabase.url}/rest/v1/global_superusers"
+                f"?discord_id=eq.{user_id}&select=discord_id&limit=1"
+            )
+            global_superuser_response = requests.get(global_superuser_url, headers=headers, timeout=5)
+            if global_superuser_response.status_code == 200 and (global_superuser_response.json() or []):
+                self._is_superuser = True
+                self._is_admin = True
+                self.user_role = "superuser"
+                self._scoped_permissions_loaded = True
+                _log_auth_debug("👑 Global superuser detected (server-independent)")
+                return True
+
+            server_id = None
+
+            # 1) Try configured server_key
+            server_url = f"{supabase.url}/rest/v1/app_servers?server_key=eq.{self._server_key}&select=id,server_key&limit=1"
+            server_response = requests.get(server_url, headers=headers, timeout=5)
+            if server_response.status_code == 200:
+                server_rows = server_response.json() or []
+                if server_rows:
+                    server_id = server_rows[0].get('id')
+                    self._server_key = (server_rows[0].get('server_key') or self._server_key).strip() or self._server_key
+
+            # 2) Fallback to app_runtime_settings.default_server_key
+            if not server_id:
+                runtime_url = (
+                    f"{supabase.url}/rest/v1/app_runtime_settings"
+                    f"?key=eq.default_server_key&select=value&limit=1"
+                )
+                runtime_response = requests.get(runtime_url, headers=headers, timeout=5)
+                if runtime_response.status_code == 200:
+                    runtime_rows = runtime_response.json() or []
+                    if runtime_rows and runtime_rows[0].get('value'):
+                        runtime_key = str(runtime_rows[0].get('value')).strip()
+                        runtime_server_url = (
+                            f"{supabase.url}/rest/v1/app_servers"
+                            f"?server_key=eq.{runtime_key}&select=id,server_key&limit=1"
+                        )
+                        runtime_server_response = requests.get(runtime_server_url, headers=headers, timeout=5)
+                        if runtime_server_response.status_code == 200:
+                            runtime_server_rows = runtime_server_response.json() or []
+                            if runtime_server_rows:
+                                server_id = runtime_server_rows[0].get('id')
+                                self._server_key = (runtime_server_rows[0].get('server_key') or runtime_key).strip() or runtime_key
+
+            # 3) Last fallback: first active server
+            if not server_id:
+                any_server_url = (
+                    f"{supabase.url}/rest/v1/app_servers"
+                    f"?is_active=eq.true&select=id,server_key&order=created_at.asc&limit=1"
+                )
+                any_server_response = requests.get(any_server_url, headers=headers, timeout=5)
+                if any_server_response.status_code == 200:
+                    any_server_rows = any_server_response.json() or []
+                    if any_server_rows:
+                        server_id = any_server_rows[0].get('id')
+                        self._server_key = (any_server_rows[0].get('server_key') or self._server_key).strip() or self._server_key
+
+            if not server_id:
+                _log_auth_debug(
+                    f"[DEBUG] Could not resolve server context. "
+                    f"configured='{self._server_key}', runtime default and active fallback missing"
+                )
+                return False
+
+            if not server_id:
+                return False
+
+            # Superuser check in new model (server_superusers)
+            superuser_url = (
+                f"{supabase.url}/rest/v1/server_superusers"
+                f"?server_id=eq.{server_id}&discord_id=eq.{user_id}&select=discord_id&limit=1"
+            )
+            superuser_response = requests.get(superuser_url, headers=headers, timeout=5)
+            if superuser_response.status_code == 200 and (superuser_response.json() or []):
+                self._is_superuser = True
+                self._is_admin = True
+                self.user_role = "superuser"
+                self._scoped_permissions_loaded = True
+                _log_auth_debug(f"👑 Superuser detected from server_superusers for server '{self._server_key}'")
+                return True
+
+            perms_url = (
+                f"{supabase.url}/rest/v1/user_server_permissions"
+                f"?server_id=eq.{server_id}&discord_id=eq.{user_id}&granted=eq.true"
+                f"&select=permission_code,city_name,institution_name"
+            )
+            perms_response = requests.get(perms_url, headers=headers, timeout=5)
+            if perms_response.status_code != 200:
+                _log_auth_debug(f"[DEBUG] user_server_permissions lookup failed: HTTP {perms_response.status_code}")
+                return False
+
+            rows = perms_response.json() or []
+            for row in rows:
+                code = self._normalize_permission_code((row.get('permission_code') or '').strip())
+                if not code:
+                    continue
+
+                city_name = row.get('city_name')
+                institution_name = row.get('institution_name')
+
+                if city_name and institution_name:
+                    key = (city_name, institution_name)
+                    self._institution_permissions.setdefault(key, set()).add(code)
+                    self._cached_granular_permissions[f"institutions.{city_name}.{institution_name}.{code}"] = True
+                    self._cached_granular_permissions[f"cities.{city_name}.institutions.{institution_name}.{code}"] = True
+                elif city_name:
+                    self._city_permissions.setdefault(city_name, set()).add(code)
+                    self._cached_granular_permissions[f"cities.{city_name}.{code}"] = True
+                else:
+                    self._global_permissions.add(code)
+                    self._cached_granular_permissions[code] = True
+
+            # Standard user role in scoped model
+            self._is_admin = False
+            self._is_superuser = False
+            has_any_permission = bool(rows)
+            self.user_role = "user" if has_any_permission else "viewer"
+            self._scoped_permissions_loaded = True
+
+            _log_auth_debug(
+                f"[DEBUG] Scoped permissions loaded for server '{self._server_key}': "
+                f"global={len(self._global_permissions)}, city={len(self._city_permissions)}, institution={len(self._institution_permissions)}"
+            )
+            return True
+        except Exception as e:
+            _log_auth_debug(f"[DEBUG] Error loading scoped permissions: {e}")
+            return False
+
+    def get_accessible_servers(self) -> list:
+        """Return list of servers visible to current user in format [{server_key, server_name}]."""
+        if self._no_cloud_db:
+            return []
+
+        if not self.is_authenticated():
+            return []
+
+        user_id = self.get_discord_id()
+        if not user_id:
+            return []
+
+        try:
+            from supabase_sync import SupabaseSync
+
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            cwd = os.getcwd()
+            config_paths = [
+                os.path.join(script_dir, "supabase_config.ini"),
+                os.path.join(cwd, "supabase_config.ini"),
+                os.path.join(os.path.dirname(script_dir), "supabase_config.ini"),
+                "supabase_config.ini"
+            ]
+
+            seen = set()
+            config_paths = [p for p in config_paths if not (p in seen or seen.add(p))]
+
+            supabase = None
+            for path in config_paths:
+                if path and os.path.exists(path):
+                    supabase = SupabaseSync(path)
+                    break
+
+            if not supabase:
+                return []
+
+            headers = {
+                "apikey": supabase.key,
+                "Authorization": f"Bearer {supabase.key}",
+                "Content-Type": "application/json"
+            }
+
+            is_global_superuser = False
+            gs_url = (
+                f"{supabase.url}/rest/v1/global_superusers"
+                f"?discord_id=eq.{user_id}&select=discord_id&limit=1"
+            )
+            gs_resp = requests.get(gs_url, headers=headers, timeout=5)
+            if gs_resp.status_code == 200 and (gs_resp.json() or []):
+                is_global_superuser = True
+
+            if self._apply_force_superuser_mode() or self._is_superuser or is_global_superuser:
+                all_servers_url = (
+                    f"{supabase.url}/rest/v1/app_servers"
+                    f"?is_active=eq.true&select=server_key,server_name&order=server_name.asc"
+                )
+                all_servers_resp = requests.get(all_servers_url, headers=headers, timeout=5)
+                if all_servers_resp.status_code == 200:
+                    self._cached_accessible_servers = all_servers_resp.json() or []
+                    return self._cached_accessible_servers
+                return []
+
+            server_ids = set()
+
+            memberships_url = (
+                f"{supabase.url}/rest/v1/server_users"
+                f"?discord_id=eq.{user_id}&is_active=eq.true&select=server_id"
+            )
+            memberships_resp = requests.get(memberships_url, headers=headers, timeout=5)
+            if memberships_resp.status_code == 200:
+                for row in memberships_resp.json() or []:
+                    sid = (row or {}).get('server_id')
+                    if sid:
+                        server_ids.add(str(sid))
+
+            # Explicit server-visibility permission (new model)
+            view_server_perms_url = (
+                f"{supabase.url}/rest/v1/user_server_permissions"
+                f"?discord_id=eq.{user_id}&granted=eq.true&permission_code=eq.can_view_server&select=server_id"
+            )
+            view_server_perms_resp = requests.get(view_server_perms_url, headers=headers, timeout=5)
+            if view_server_perms_resp.status_code == 200:
+                for row in view_server_perms_resp.json() or []:
+                    sid = (row or {}).get('server_id')
+                    if sid:
+                        server_ids.add(str(sid))
+
+            # Backward compatibility: any granted scoped permission implies server visibility
+            direct_perms_url = (
+                f"{supabase.url}/rest/v1/user_server_permissions"
+                f"?discord_id=eq.{user_id}&granted=eq.true&select=server_id"
+            )
+            direct_perms_resp = requests.get(direct_perms_url, headers=headers, timeout=5)
+            if direct_perms_resp.status_code == 200:
+                for row in direct_perms_resp.json() or []:
+                    sid = (row or {}).get('server_id')
+                    if sid:
+                        server_ids.add(str(sid))
+
+            if not server_ids:
+                self._cached_accessible_servers = []
+                return []
+
+            in_filter = ",".join(server_ids)
+            servers_url = (
+                f"{supabase.url}/rest/v1/app_servers"
+                f"?id=in.({in_filter})&is_active=eq.true&select=server_key,server_name&order=server_name.asc"
+            )
+            servers_resp = requests.get(servers_url, headers=headers, timeout=5)
+            if servers_resp.status_code == 200:
+                self._cached_accessible_servers = servers_resp.json() or []
+                return self._cached_accessible_servers
+
+            return []
+        except Exception as e:
+            _log_auth_debug(f"[DEBUG] Error loading accessible servers: {e}")
+            return []
     
     def get_username(self) -> str:
         """Get current user's username"""
@@ -390,16 +776,22 @@ class DiscordAuth:
     def get_discord_id(self) -> str:
         """Get current user's Discord ID"""
         if self.user_info:
-            return self.user_info.get('id', '')
+            discord_id = self.user_info.get('id') or self.user_info.get('discord_id') or ''
+            return str(discord_id)
         return None
     
     def get_user_role(self) -> str:
         """Get current user's role: admin, user, or viewer"""
+        if self._apply_force_superuser_mode():
+            return "superuser"
         return self.user_role
     
     def get_accessible_institutions(self) -> list:
         """Fetch institutions that the user has access to from Supabase"""
         try:
+            if self._apply_force_superuser_mode():
+                return []  # Empty means "all institutions"
+
             user_id = self.get_discord_id()
             if not user_id:
                 return []
@@ -678,87 +1070,103 @@ class DiscordAuth:
                     pass
     
     def is_admin(self) -> bool:
-        """Check if user is admin or superuser"""
+        """Return True when authenticated user is admin/superuser or force mode is active."""
         if not self.is_authenticated():
             return False
-        
-        # Superuser and admin both have admin privileges
-        return self._is_superuser or self._is_admin or self.user_role.lower() in ['admin', 'superuser']
+
+        if self._apply_force_superuser_mode():
+            return True
+
+        return bool(self._is_admin or self._is_superuser)
     
     def is_superuser(self) -> bool:
-        """Check if user is superuser"""
+        """Return True when authenticated user is superuser or force mode is active."""
         if not self.is_authenticated():
             return False
-        
-        return self._is_superuser or self.user_role.lower() == 'superuser'
+
+        if self._apply_force_superuser_mode():
+            return True
+
+        return bool(self._is_superuser)
     
     def can_view(self) -> bool:
-        """Check if user can view data - all authenticated users"""
+        """Check if user can view data based on explicit permission."""
         if not self.is_authenticated():
             return False
-        
-        # viewers, users, and admins can view
-        return self.user_role.lower() in ['viewer', 'user', 'admin']
+
+        if self._apply_force_superuser_mode():
+            return True
+
+        return self._has_scoped_permission('can_view')
     
     def can_view_city(self, city_name: str) -> bool:
-        """Check if user can view specific city - checks granular permissions"""
+        """Check if user can view specific city based on scoped permissions."""
         if not self.is_authenticated():
             return False
-        
-        # Superuser always can view
-        if self._is_superuser:
-            print(f"[DEBUG] {self.get_username()} is superuser - can view {city_name}")
+
+        if self._apply_force_superuser_mode():
             return True
         
-        # Check granular permission for this specific city
-        permission_key = f"cities.{city_name}.can_view"
-        if self.has_granular_permission(permission_key):
-            return True
-        
-        # Fallback: viewers, users, and admins can view (if granular not set)
-        return self.user_role.lower() in ['viewer', 'user', 'admin']
+        return self._has_scoped_permission('can_view', city_name=city_name)
     
     def can_edit_city_granular(self, city_name: str) -> bool:
-        """Check if user can edit specific city - checks granular permissions"""
+        """Check if user can edit specific city based on scoped permissions."""
         if not self.is_authenticated():
             return False
-        
-        # Superuser always can edit
-        if self._is_superuser:
+
+        if self._apply_force_superuser_mode():
             return True
         
-        # Check granular permission for this specific city
-        permission_key = f"cities.{city_name}.can_edit"
-        if self.has_granular_permission(permission_key):
-            return True
-        
-        # Fallback: users and admins can edit (if granular not set)
-        return self.user_role.lower() in ['user', 'admin']
+        return self._has_scoped_permission('can_edit', city_name=city_name) or self._has_scoped_permission('can_edit_cities', city_name=city_name)
     
     def can_perform_action(self, action_id: str, city_name: str = None) -> bool:
-        """Check if user can perform a specific action - users, admins, and superusers"""
+        """Check if user can perform action based on explicit permission mapping."""
         if not self.is_authenticated():
             return False
+
+        if self._apply_force_superuser_mode():
+            return True
         
-        # Actions: add_institution, edit_institution, delete_institution, add_employee, etc.
-        # Users, admins, and superusers can perform modifications
-        return self.user_role.lower() in ['user', 'admin', 'superuser']
+        action_map = {
+            'add_institution': 'can_edit',
+            'edit_institution': 'can_edit',
+            'delete_institution': 'can_delete',
+            'add_employee': 'can_edit_employee',
+            'edit_employee': 'can_edit_employee',
+            'delete_employee': 'can_delete_employee',
+            'add_city': 'can_add_cities',
+            'edit_city': 'can_edit_cities',
+            'delete_city': 'can_delete_cities',
+            'view_logs': 'can_view_logs',
+        }
+        permission_code = action_map.get(action_id, 'can_edit')
+        return self._has_scoped_permission(permission_code, city_name=city_name)
     
     def can_manage_institution_employees(self, city: str, institution: str) -> bool:
-        """Check if user can manage employees - only users and admins"""
+        """Check if user can manage institution employees based on explicit permissions."""
         if not self.is_authenticated():
             return False
+
+        if self._apply_force_superuser_mode():
+            return True
         
-        # Only users and admins can manage employees
-        return self.user_role.lower() in ['user', 'admin']
+        return (
+            self._has_scoped_permission('can_edit_employee', city_name=city, institution_name=institution)
+            or self._has_scoped_permission('can_edit', city_name=city, institution_name=institution)
+        )
     
     def can_manage_granular_permissions(self) -> bool:
-        """Check if user can manage granular permissions - only superusers and admins"""
+        """Check if user can manage permissions based on explicit rights."""
         if not self.is_authenticated():
             return False
+
+        if self._apply_force_superuser_mode():
+            return True
         
-        # Only superusers and admins can manage granular permissions
-        return self._is_superuser or self._is_admin
+        return (
+            self._has_scoped_permission('can_manage_user_permissions')
+            or self._has_scoped_permission('can_see_user_permissions_button')
+        )
     
     def reload_granular_permissions_from_json(self):
         """
@@ -767,6 +1175,9 @@ class DiscordAuth:
         ALSO RESTORE is_superuser and is_admin from JSON!
         """
         try:
+            if self._apply_force_superuser_mode():
+                return True
+
             import os
             import json
             
@@ -843,140 +1254,35 @@ class DiscordAuth:
         return False
     
     def has_granular_permission(self, permission_key: str) -> bool:
-        """
-        Check if user has a specific granular permission
-        Priority: 
-        1. users_permissions.json (local encrypted cache)
-        2. Permission sync manager cache
-        3. Supabase (fallback with caching)
-        """
+        """Permission-only mode: evaluate permission from user_server_permissions scopes."""
         if not self.is_authenticated():
             return False
-        
-        # Superuser always has all permissions
-        if self._is_superuser:
+
+        if self._apply_force_superuser_mode():
             return True
-        
-        user_id = self.get_discord_id()
-        if not user_id:
-            return False
-        
-        # Check local cache first
+
+        self._ensure_scoped_permissions_loaded()
+
         if permission_key in self._cached_granular_permissions:
-            return self._cached_granular_permissions[permission_key]
-        
-        # Try to load from users_permissions.json (LOCAL ENCRYPTED CACHE)
-        try:
-            import os
-            import json
-            from pathlib import Path
-            
-            # Find data directory
-            data_dirs = [
-                os.path.join(os.path.dirname(__file__), "data"),
-                "data",
-                os.path.join(os.path.expanduser("~"), "Documents/PunctajManager/data"),
-            ]
-            
-            json_file = None
-            for data_dir in data_dirs:
-                potential_file = os.path.join(data_dir, "users_permissions.json")
-                if os.path.exists(potential_file):
-                    json_file = potential_file
-                    break
-            
-            if json_file:
-                try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        json_data = json.load(f)
-                    
-                    # Get user's permissions from JSON
-                    users = json_data.get('users', {})
-                    user_key = str(user_id)
-                    
-                    if user_key in users:
-                        user_perms = users[user_key]
-                        perms_dict = user_perms.get('permissions', {})
-                        
-                        # Parse permission_key (e.g., "cities.BlackWater.can_view")
-                        keys = permission_key.split('.')
-                        current = perms_dict
-                        
-                        for key in keys:
-                            if isinstance(current, dict) and key in current:
-                                current = current[key]
-                            else:
-                                break
-                        
-                        # If we found a value, cache and return it
-                        if isinstance(current, bool):
-                            self._cached_granular_permissions[permission_key] = current
-                            return current
-                except Exception as e:
-                    print(f"[DiscordAuth] Warning: Could not read users_permissions.json: {e}")
-        except:
-            pass
-        
-        # Try to use permission sync manager cache
-        if self.permission_sync_manager:
-            try:
-                cached_value = self.permission_sync_manager.get_cached_permission(permission_key)
-                if permission_key in self.permission_sync_manager.last_global_permissions:
-                    return cached_value
-            except:
-                pass
-        
-        # Fallback: Check granular permissions from Supabase (with caching)
-        try:
-            import requests
-            
-            # Try to get granular permissions from supabase
-            try:
-                from supabase_sync import SupabaseSync
-                import configparser
-                
-                config_paths = [
-                    os.path.join(os.path.dirname(__file__), "supabase_config.ini"),
-                    os.path.join(os.path.expanduser("~"), "Documents/PunctajManager/supabase_config.ini"),
-                    "supabase_config.ini"
-                ]
-                
-                supabase = None
-                for path in config_paths:
-                    if os.path.exists(path):
-                        supabase = SupabaseSync(path)
-                        break
-                
-                if supabase:
-                    headers = {
-                        "apikey": supabase.key,
-                        "Authorization": f"Bearer {supabase.key}",
-                        "Content-Type": "application/json"
-                    }
-                    
-                    url = f"{supabase.url}/rest/v1/discord_users?discord_id=eq.{user_id}&select=granular_permissions"
-                    response = requests.get(url, headers=headers, timeout=5)
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        if data and len(data) > 0:
-                            perms_data = data[0].get('granular_permissions', {})
-                            if isinstance(perms_data, str):
-                                perms_data = json.loads(perms_data)
-                            
-                            # Cache all global permissions
-                            global_perms = perms_data.get('global', {})
-                            self._cached_granular_permissions = global_perms
-                            
-                            # Check in global permissions
-                            if permission_key in global_perms:
-                                return global_perms.get(permission_key, False)
-            except:
-                pass
-        except Exception as e:
-            print(f"[DiscordAuth] Error checking granular permission {permission_key}: {e}")
-        
-        return False
+            return bool(self._cached_granular_permissions[permission_key])
+
+        parts = permission_key.split('.')
+        if len(parts) >= 3 and parts[0] == 'cities':
+            city_name = parts[1]
+            if len(parts) >= 5 and parts[2] == 'institutions':
+                institution_name = parts[3]
+                permission_code = self._normalize_permission_code(parts[4])
+                return self._has_scoped_permission(permission_code, city_name=city_name, institution_name=institution_name)
+            permission_code = self._normalize_permission_code(parts[2])
+            return self._has_scoped_permission(permission_code, city_name=city_name)
+
+        if len(parts) >= 4 and parts[0] == 'institutions':
+            city_name = parts[1]
+            institution_name = parts[2]
+            permission_code = self._normalize_permission_code(parts[3])
+            return self._has_scoped_permission(permission_code, city_name=city_name, institution_name=institution_name)
+
+        return self._has_scoped_permission(self._normalize_permission_code(permission_key))
     
     def set_permission_sync_manager(self, sync_manager):
         """Set the permission sync manager for cached permission checks"""
