@@ -1829,6 +1829,27 @@ def discord_login():
                                 print(f"   Users synced: {sync_result['user_permissions'].get('count', 0)}")
                                 print(f"   Total time: {sync_result.get('total_time', 0):.2f}s")
                                 
+                                # 🎯 FORȚĂ REFRESH DUPĂ SYNC (pentru multi-device)
+                                records_synced = sync_result.get('police_data', {}).get('records', 0)
+                                if records_synced > 0:
+                                    print(f"🔄 Detectat {records_synced} înregistrări sincronizate - Refreshez UI...")
+                                    try:
+                                        # Reîmprospătează lista de orașe din cache
+                                        global AVAILABLE_CITIES
+                                        AVAILABLE_CITIES = get_available_cities()
+                                        print(f"   ✓ Refreshed cities cache: {len(AVAILABLE_CITIES)} orașe")
+                                        
+                                        # Notificare vizibilă pentru utilizator
+                                        messagebox.showinfo(
+                                            "🌐 Sincronizare Cloud Completă", 
+                                            f"Aplicația a fost sincronizată cu datele din cloud!\n\n"
+                                            f"📊 {records_synced} înregistrări actualizate\n"
+                                            f"🏙️ {sync_result['police_data'].get('count', 0)} orașe sincronizate\n\n"
+                                            f"✓ Datele sunt acum la zi pe acest dispozitiv!"
+                                        )
+                                    except Exception as refresh_err:
+                                        print(f"⚠️  UI refresh warning: {refresh_err}")
+                                
                                 # ⭐ Start background sync (every 5 minutes)
                                 try:
                                     MULTI_DEVICE_SYNC_MANAGER.start_background_sync(interval=300)
@@ -2070,6 +2091,28 @@ def discord_login():
                         print(f"✅ Multi-device sync completed!")
                         print(f"   Cities synced: {sync_result['police_data'].get('count', 0)}")
                         print(f"   Users synced: {sync_result['user_permissions'].get('count', 0)}")
+                        print(f"   Total time: {sync_result.get('total_time', 0):.2f}s")
+                        
+                        # 🎯 FORȚĂ REFRESH DUPĂ SYNC (pentru multi-device)
+                        records_synced = sync_result.get('police_data', {}).get('records', 0)
+                        if records_synced > 0:
+                            print(f"🔄 Detectat {records_synced} înregistrări sincronizate - Refreshez UI...")
+                            try:
+                                # Reîmprospătează lista de orașe din cache
+                                global AVAILABLE_CITIES
+                                AVAILABLE_CITIES = get_available_cities()
+                                print(f"   ✓ Refreshed cities cache: {len(AVAILABLE_CITIES)} orașe")
+                                
+                                # Notificare vizibilă pentru utilizator
+                                messagebox.showinfo(
+                                    "🌐 Sincronizare Cloud Completă", 
+                                    f"Aplicația a fost sincronizată cu datele din cloud!\n\n"
+                                    f"📊 {records_synced} înregistrări actualizate\n"
+                                    f"🏙️ {sync_result['police_data'].get('count', 0)} orașe sincronizate\n\n"
+                                    f"✓ Datele sunt acum la zi pe acest dispozitiv!"
+                                )
+                            except Exception as refresh_err:
+                                print(f"⚠️  UI refresh warning: {refresh_err}")
                         
                         # ⭐ Start background sync (every 5 minutes)
                         try:
@@ -2686,6 +2729,16 @@ sidebar.bind("<Configure>", _sidebar_on_configure)
 sidebar_canvas.bind("<Configure>", _sidebar_on_canvas_configure)
 sidebar_canvas.bind("<MouseWheel>", _sidebar_on_mousewheel)
 root.bind_all("<MouseWheel>", _sidebar_on_mousewheel)
+
+# 🌍 Multi-Device Sync shortcut (Ctrl+M)
+def handle_multidevice_sync_shortcut(event=None):
+    """Handle Ctrl+M shortcut for multi-device sync"""
+    if MULTI_DEVICE_SYNC_MANAGER:
+        force_multi_device_sync()
+    return "break"
+
+root.bind_all("<Control-m>", handle_multidevice_sync_shortcut)
+root.bind_all("<Control-M>", handle_multidevice_sync_shortcut)  # Capital M too
 
 ACCESSIBLE_SERVERS = []
 server_listbox = None
@@ -3551,6 +3604,29 @@ if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
             text="Notifică toți utilizatorii și forțează descărcare din cloud",
             font=("Segoe UI", 8),
             bg="#fff3e0",
+            fg="#555"
+        ).pack(pady=5)
+        
+        # 🌍 Buton Multi-Device Sync
+        multidevice_frame = tk.Frame(content_frame, bg="#e8f5e9", relief=tk.RAISED, borderwidth=2)
+        multidevice_frame.pack(fill=tk.X, pady=5)
+        
+        tk.Button(
+            multidevice_frame,
+            text="🌍 SINCRONIZARE MULTI-DEVICE",
+            font=("Segoe UI", 10, "bold"),
+            bg="#4caf50",
+            fg="white",
+            command=force_multi_device_sync,
+            relief=tk.FLAT,
+            cursor="hand2"
+        ).pack(fill=tk.X, padx=10, pady=10)
+        
+        tk.Label(
+            multidevice_frame,
+            text="Sincronizează între calculatoare/partiții diferite",
+            font=("Segoe UI", 8),
+            bg="#e8f5e9",
             fg="#555"
         ).pack(pady=5)
         
@@ -7156,6 +7232,112 @@ def force_cloud_sync_button():
             "✅ Sincronizare forțată inițiată!\n\n"
             "Toți utilizatorii vor fi notificați\n"
             "și vor trebui să descarce modificările."
+        )
+
+def force_multi_device_sync():
+    """
+    🌍 FORȚEAZĂ SINCRONIZARE MULTI-DEVICE
+    Specializat pentru sincronizarea între două calculatoare/partiții diferite.
+    Descarcă toate datele din cloud și refreshează UI-ul complet.
+    """
+    global AVAILABLE_CITIES
+    
+    if not MULTI_DEVICE_SYNC_MANAGER:
+        messagebox.showerror(
+            "Eroare Sincronizare", 
+            "Multi-device sync manager nu este disponibil!\n\n"
+            "Verifică configurația Supabase."
+        )
+        return
+    
+    # Confirmă sincronizarea
+    if not messagebox.askyesno(
+        "🌍 Multi-Device Sync", 
+        "Vei sincroniza complet aplicația cu datele din cloud.\n\n"
+        "✓ Toate datele vor fi descărcate din Supabase\n"
+        "✓ UI-ul va fi refreshat automat\n"
+        "✓ Modificările de pe alte dispozitive vor apărea\n\n"
+        "Continuă sincronizarea?"
+    ):
+        return
+    
+    try:
+        # Progress dialog
+        progress_window = tk.Toplevel()
+        progress_window.title("🌍 Multi-Device Sync")
+        progress_window.geometry("400x200")
+        progress_window.grab_set()
+        progress_window.transient(root)
+        
+        # Center window
+        progress_window.update_idletasks()
+        x = (progress_window.winfo_screenwidth() // 2) - (200)
+        y = (progress_window.winfo_screenheight() // 2) - (100)
+        progress_window.geometry(f"+{x}+{y}")
+        
+        # Progress label
+        progress_label = tk.Label(
+            progress_window, 
+            text="🔄 Sincronizare în progres...\n\nDescărcare date din cloud...",
+            font=("Segoe UI", 10),
+            justify=tk.CENTER
+        )
+        progress_label.pack(pady=20)
+        
+        progress_window.update()
+        
+        # Perform sync
+        start_time = time.time()
+        sync_result = MULTI_DEVICE_SYNC_MANAGER.full_cloud_sync_on_startup()
+        
+        # Update progress
+        progress_label.config(text="✓ Date descărcate\n\n🔄 Refreshez UI...")
+        progress_window.update()
+        
+        # Force UI refresh
+        records_synced = sync_result.get('police_data', {}).get('records', 0)
+        cities_synced = sync_result.get('police_data', {}).get('count', 0)
+        
+        if records_synced > 0:
+            # Refresh cities cache
+            AVAILABLE_CITIES = get_available_cities()
+            
+            # Refresh current view if any table is open
+            try:
+                _refresh_active_table_from_sync()
+            except:
+                pass
+            
+            progress_label.config(text="✓ UI refreshat\n\n✅ Sincronizare completă!")
+        else:
+            progress_label.config(text="ℹ️ Nu au fost găsite date noi\n\n✓ Aplicația este la zi!")
+        
+        progress_window.update()
+        
+        # Close progress after 2 seconds
+        progress_window.after(2000, progress_window.destroy)
+        
+        # Success message
+        time_taken = time.time() - start_time
+        messagebox.showinfo(
+            "🌍 Multi-Device Sync Complet",
+            f"✅ Sincronizare completă cu succes!\n\n"
+            f"📊 {records_synced} înregistrări procesate\n"
+            f"🏙️ {cities_synced} orașe sincronizate\n"
+            f"⏱️ Timp: {time_taken:.1f} secunde\n\n"
+            f"✓ Aplicația este acum la zi cu toate modificările\n"
+            f"  făcute pe alte dispozitive!"
+        )
+        
+    except Exception as e:
+        if 'progress_window' in locals():
+            progress_window.destroy()
+        
+        print(f"❌ Multi-device sync error: {e}")
+        messagebox.showerror(
+            "Eroare Sincronizare",
+            f"Eroare la sincronizarea multi-device:\n\n{str(e)}\n\n"
+            f"Verifică conexiunea la internet și configurația Supabase."
         )
 
 # ================== SINCRONIZARE LA PORNIRE ==================
