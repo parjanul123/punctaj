@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import csv
+import subprocess
 from datetime import datetime
 import schedule
 import threading
@@ -3364,7 +3365,108 @@ def refresh_discord_section():
 # Separator
 tk.Frame(sidebar, height=2, bg="#cccccc").pack(fill=tk.X, pady=15, padx=10)
 
-# Buton Sincronizare Cloud
+# 🔄 Buton Git Updater
+def launch_git_updater():
+    """Lansează Git Updater pentru actualizări din git"""
+    updater_paths = [
+        os.path.join(os.path.dirname(__file__), "dist_updater", "Git_Updater", "Git_Updater.exe"),
+        os.path.join(os.path.dirname(__file__), "git_updater.py")
+    ]
+    
+    for path in updater_paths:
+        if os.path.exists(path):
+            try:
+                if path.endswith('.exe'):
+                    subprocess.Popen([path], cwd=os.path.dirname(__file__))
+                else:
+                    subprocess.Popen(["python", path], cwd=os.path.dirname(__file__))
+                
+                messagebox.showinfo(
+                    "🔄 Git Updater",
+                    "Git Updater a fost lansat!\n\n"
+                    "🔍 Verifică modificări disponibile\n"
+                    "⬇️ Actualizează cu git pull\n"
+                    "🔄 Restart aplicație după update\n\n"
+                    "📋 Vezi log-ul pentru detalii."
+                )
+                return
+            except Exception as e:
+                messagebox.showerror("Eroare Git Updater", f"Nu pot lansa Git Updater:\n{e}")
+                return
+    
+    messagebox.showerror(
+        "Git Updater Lipsește", 
+        "Nu pot găsi Git Updater!\n\n"
+        "📋 Pentru a-l construi:\n"
+        "1. Rulează BUILD_UPDATER.bat\n"
+        "2. SAU python build_updater.py\n\n"
+        "📁 Va fi creat în dist_updater/"
+    )
+
+git_updater_button = tk.Button(
+    sidebar,
+    text="🔄 Git Updater",
+    font=("Segoe UI", 10, "bold"),
+    bg="#9b59b6",
+    fg="white",
+    command=launch_git_updater,
+    relief=tk.FLAT,
+    cursor="hand2"
+)
+git_updater_button.pack(fill=tk.X, padx=10, pady=5)
+
+# 🛡️ Buton Punctaj Update (aplicație specializată)  
+def launch_punctaj_update():
+    """Lansează aplicația Punctaj Update specializată"""
+    update_paths = [
+        os.path.join(os.path.dirname(__file__), "dist", "Punctaj_Update.exe"),
+        os.path.join(os.path.dirname(__file__), "punctaj_update.py")
+    ]
+    
+    for path in update_paths:
+        if os.path.exists(path):
+            try:
+                if path.endswith('.exe'):
+                    subprocess.Popen([path], cwd=os.path.dirname(__file__))
+                else:
+                    subprocess.Popen(["python", path], cwd=os.path.dirname(__file__))
+                
+                messagebox.showinfo(
+                    "🛡️ Punctaj Update",
+                    "Punctaj Update a fost lansat!\n\n"
+                    "🔍 Verifică actualizări pentru sistem\n"
+                    "⬇️ Actualizează cu backup automat\n"
+                    "💾 Backup configurații\n"
+                    "🔄 Restart aplicație\n\n"
+                    "📊 Interfață specializată pentru Punctaj"
+                )
+                return
+            except Exception as e:
+                messagebox.showerror("Eroare Punctaj Update", f"Nu pot lansa Punctaj Update:\n{e}")
+                return
+    
+    messagebox.showerror(
+        "Punctaj Update Lipsește", 
+        "Nu pot găsi aplicația Punctaj Update!\n\n"
+        "📋 Pentru a o construi:\n"
+        "1. Rulează BUILD_PUNCTAJ_UPDATE.bat\n"
+        "2. SAU python build_punctaj_update.py\n\n"
+        "📁 Va fi creată ca dist/Punctaj_Update.exe"
+    )
+
+punctaj_update_button = tk.Button(
+    sidebar,
+    text="🛡️ Punctaj Update",
+    font=("Segoe UI", 10, "bold"),
+    bg="#c41e3a",  # Roșu policesc oficial
+    fg="white",
+    command=launch_punctaj_update,
+    relief=tk.FLAT,
+    cursor="hand2"
+)
+punctaj_update_button.pack(fill=tk.X, padx=10, pady=5)
+
+# Separare între updaters
 if SUPABASE_SYNC and SUPABASE_SYNC.enabled:
     def manual_cloud_sync():
         """Sincronizare manuală cu cloud - Upload sau Download"""
