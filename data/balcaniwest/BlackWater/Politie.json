@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-03-07 12:20:37",
+    "last_punctaj_update": "2026-03-07 12:21:56",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -31,17 +31,8 @@
             "SERIE DE BULETIN": "J82B48Z62",
             "RANK": "6",
             "ROLE": "Sherif Adjunct",
-            "PUNCTAJ": "25",
-            "ULTIMA_MOD": "2026-03-07 12:17:08"
-        },
-        {
-            "DISCORD": "Flavius-ursu",
-            "NUME IC": "Flavius-ursu",
-            "SERIE DE BULETIN": "F31C95M57",
-            "RANK": "2",
-            "ROLE": "Caporal",
-            "PUNCTAJ": "20",
-            "ULTIMA_MOD": "2026-03-07 12:17:08"
+            "PUNCTAJ": "29",
+            "ULTIMA_MOD": "2026-03-07 12:21:56"
         },
         {
             "DISCORD": "Cristofor Columb",
@@ -51,6 +42,15 @@
             "ROLE": "Sherif",
             "PUNCTAJ": "25",
             "ULTIMA_MOD": "2026-03-07 12:20:37"
+        },
+        {
+            "DISCORD": "Flavius-ursu",
+            "NUME IC": "Flavius-ursu",
+            "SERIE DE BULETIN": "F31C95M57",
+            "RANK": "2",
+            "ROLE": "Caporal",
+            "PUNCTAJ": "20",
+            "ULTIMA_MOD": "2026-03-07 12:17:08"
         },
         {
             "DISCORD": "Parjanu",
@@ -76,8 +76,8 @@
             "SERIE DE BULETIN": "K83I84P85",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-03-07 12:19:03"
+            "PUNCTAJ": "7",
+            "ULTIMA_MOD": "2026-03-07 12:21:56"
         },
         {
             "DISCORD": "nikolas",
