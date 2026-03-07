@@ -18,22 +18,13 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-03-07 12:17:08",
+    "last_punctaj_update": "2026-03-07 12:17:48",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
     "city_id": 5,
     "institution_id": 1,
     "rows": [
-        {
-            "DISCORD": "Cristofor Columb",
-            "NUME IC": "Cristofor Columb",
-            "SERIE DE BULETIN": "S79A64B71",
-            "RANK": "7",
-            "ROLE": "Sherif",
-            "PUNCTAJ": "17",
-            "ULTIMA_MOD": "2026-03-07 12:15:54"
-        },
         {
             "DISCORD": "Sintact",
             "NUME IC": "Rocky Jay",
@@ -42,15 +33,6 @@
             "ROLE": "Sherif Adjunct",
             "PUNCTAJ": "25",
             "ULTIMA_MOD": "2026-03-07 12:17:08"
-        },
-        {
-            "DISCORD": "Parjanu",
-            "NUME IC": "Dandeny Munoz",
-            "SERIE DE BULETIN": "R87G65U68",
-            "RANK": "5",
-            "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "14",
-            "ULTIMA_MOD": "2026-03-07 12:14:45"
         },
         {
             "DISCORD": "Flavius-ursu",
@@ -62,13 +44,31 @@
             "ULTIMA_MOD": "2026-03-07 12:17:08"
         },
         {
+            "DISCORD": "Cristofor Columb",
+            "NUME IC": "Cristofor Columb",
+            "SERIE DE BULETIN": "S79A64B71",
+            "RANK": "7",
+            "ROLE": "Sherif",
+            "PUNCTAJ": "20",
+            "ULTIMA_MOD": "2026-03-07 12:17:48"
+        },
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": "14",
+            "ULTIMA_MOD": "2026-03-07 12:14:45"
+        },
+        {
             "DISCORD": "Aly Baba",
             "NUME IC": "Aly Baba",
             "SERIE DE BULETIN": "I60F89C81",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "3",
-            "ULTIMA_MOD": "2026-03-07 12:16:32"
+            "PUNCTAJ": "6",
+            "ULTIMA_MOD": "2026-03-07 12:17:48"
         },
         {
             "DISCORD": "nikolas",
