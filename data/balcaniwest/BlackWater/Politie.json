@@ -18,7 +18,7 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-03-07 12:05:19",
+    "last_punctaj_update": "2026-03-07 12:09:11",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
@@ -114,6 +114,15 @@
             "ROLE": "Offiter",
             "PUNCTAJ": "0",
             "ULTIMA_MOD": "2026-03-07 12:05:19"
+        },
+        {
+            "DISCORD": "Adi Ratza",
+            "NUME IC": "Ratza",
+            "SERIE DE BULETIN": "S68L34W77",
+            "RANK": "1",
+            "ROLE": "Offiter",
+            "PUNCTAJ": "0",
+            "ULTIMA_MOD": "2026-03-07 12:09:11"
         }
     ]
 }
