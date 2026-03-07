@@ -211,6 +211,11 @@ config_files_to_copy = [
     "discord_config.ini",
 ]
 
+# Copy additional Python files needed for features
+additional_files_to_copy = [
+    "git_updater.py",  # Git Updater pentru actualizări automate
+]
+
 print("\nCopying configuration files to dist/:")
 for config_file in config_files_to_copy:
     src = SCRIPT_DIR / config_file
@@ -222,6 +227,19 @@ for config_file in config_files_to_copy:
         except Exception as e:
             print(f"  ⚠️  Could not copy {config_file}: {e}")
 
+print("\nCopying additional feature files to dist/:")
+for additional_file in additional_files_to_copy:
+    src = SCRIPT_DIR / additional_file
+    dst = DIST_DIR / additional_file
+    if src.exists():
+        try:
+            shutil.copy2(src, dst)
+            print(f"  ✅ {additional_file}")
+        except Exception as e:
+            print(f"  ⚠️  Could not copy {additional_file}: {e}")
+    else:
+        print(f"  ⚠️  {additional_file} not found")
+
 # Step 7: Create README
 print("\nCreating README in dist/:")
 
@@ -232,12 +250,19 @@ readme_content = """# 🎯 PunctajManager - Multi-Device Application
 - **punctaj.exe** - Main application
 - **supabase_config.ini** - Supabase configuration
 - **discord_config.ini** - Discord authentication config
+- **git_updater.py** - Git Updater for automatic updates
 
 ## 🚀 How to Run
 
 1. Double-click `punctaj.exe`
 2. Login with Discord
 3. Application automatically syncs with cloud
+
+## 🔄 Git Updates
+
+- Use the built-in **Git Updater** button in the app
+- Automatically downloads latest updates from Git
+- Updates the application with newest features and fixes
 
 ## ✅ Features
 
@@ -248,6 +273,7 @@ readme_content = """# 🎯 PunctajManager - Multi-Device Application
 ✅ Backup & restore
 ✅ Admin panel
 ✅ Supabase cloud integration
+✅ Git auto-updater for latest features
 
 ## 🔄 Cloud Sync
 

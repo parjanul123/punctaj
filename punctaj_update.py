@@ -51,7 +51,15 @@ class PunctajUpdater:
         
         # Variabile
         self.is_updating = False
-        self.repo_path = os.path.dirname(os.path.abspath(__file__))
+        
+        # Repository path - ÎNTOTDEAUNA folderul părinte (punctaj)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        if current_dir.endswith('dist'):
+            # Dacă exe-ul este în dist/, mergi la folderul părinte punctaj/
+            self.repo_path = os.path.dirname(current_dir)
+        else:
+            # Dacă rulezi direct .py din punctaj/
+            self.repo_path = current_dir
         
         # Status aplicație punctaj
         self.punctaj_running = False
@@ -119,7 +127,7 @@ class PunctajUpdater:
         
         tk.Label(
             repo_info_frame,
-            text=f"📁 Repository: {self.repo_path}",
+            text=f"📁 Git Repository: {self.repo_path}",
             font=("Segoe UI", 9),
             bg=self.colors["background"],
             fg=self.colors["secondary"],
@@ -324,6 +332,8 @@ class PunctajUpdater:
                 cwd=cwd,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',  # Înlocuiește caractere problematice
                 timeout=120  # 2 minute timeout
             )
             
@@ -346,6 +356,7 @@ class PunctajUpdater:
     
     def startup_checks(self):
         """Verificări la startup"""
+        self.log(f"📁 Working directory: {self.repo_path}")
         self.log("Începând verificările de sistem...")
         self.update_status("Verificând sistemul...")
         
@@ -525,7 +536,7 @@ class PunctajUpdater:
                     self.log("Găsite modificări locale - fac stash...", "WARNING")
                     self.update_progress(30, "Salvând modificări locale...")
                     
-                    success, stash_output = self.run_git_command("git stash push -m 'Auto-stash înainte de update'")
+                    success, stash_output = self.run_git_command("git stash push -m \"auto-stash-before-update\"")
                     if success:
                         stash_created = True
                         self.log("Modificări locale salvate în stash", "SUCCESS")
@@ -563,9 +574,9 @@ class PunctajUpdater:
                         # Întreabă despre recuperarea modificărilor locale
                         if stash_created:
                             self.update_progress(90, "Verificând recuperare modificări...")
-                            if messagebox.askyesno("Recuperare modificări", 
+                            if messagebox.askyesno("Recuperare modificari", 
                                                  "Actualizarea s-a completat cu succes!\n\n"
-                                                 "Vrei să recuperez modificările locale salvate înainte de update?"):
+                                                 "Vrei sa recuperez modificarile locale salvate?"):
                                 self.run_git_command("git stash pop")
                                 self.log("Modificări locale recuperate", "SUCCESS")
                             else:
@@ -644,7 +655,15 @@ class PunctajUpdater:
 # Entry point
 if __name__ == "__main__":
     print(f"🛡️ {APP_NAME} v{VERSION}")
-    print(f"Repository: {os.path.dirname(os.path.abspath(__file__))}")
+    
+    # Determină path-ul corect
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if current_dir.endswith('dist'):
+        repo_path = os.path.dirname(current_dir)
+    else:
+        repo_path = current_dir
+        
+    print(f"📁 Git Repository: {repo_path}")
     print("=" * 60)
     
     app = PunctajUpdater()

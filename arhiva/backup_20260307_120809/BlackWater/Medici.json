@@ -1,0 +1,30 @@
+{
+    "columns": [
+        "DISCORD",
+        "NUME IC",
+        "RANK",
+        "ROLE",
+        "PUNCTAJ",
+        "ULTIMA_MOD"
+    ],
+    "ranks": {
+        "1": "medic1",
+        "2": "medic2",
+        "3": "medic3"
+    },
+    "rankuri_desc": "Rank 1: medic1\nRank 2: medic2\nRank 3: medic3",
+    "last_punctaj_update": "2026-02-18 19:25:45",
+    "version": 1,
+    "last_synced": null,
+    "pending_sync": false,
+    "rows": [
+        {
+            "DISCORD": "flavius",
+            "NUME IC": "flavius",
+            "RANK": "3",
+            "ROLE": "medic3",
+            "PUNCTAJ": "317",
+            "ULTIMA_MOD": "2026-02-18 19:25:45"
+        }
+    ]
+}

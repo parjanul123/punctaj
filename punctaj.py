@@ -607,21 +607,47 @@ def supabase_upload(city, institution, json_data, file_path=None):
         print(f"   📊 Data: {len(rows)} rows, city_id={city_id}, institution_id={institution_id}")
         
         if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE and city_id and institution_id:
-            # Sincronizează fiecare angajat
+            # Sincronizează fiecare angajat - cu verificare îmbunătățită anti-dublare
             synced = 0
             for row in rows:
                 try:
                     emp_data = SUPABASE_EMPLOYEE_MANAGER.format_employee_for_supabase(row)
-                    # Caută dacă angajatul deja există
-                    existing = SUPABASE_EMPLOYEE_MANAGER.get_employee_by_name(institution_id, row.get("NUME IC", ""))
+                    employee_name = row.get("NUME IC", "")
+                    employee_discord = row.get("DISCORD", "")
+                    
+                    # DUPLICATE FIX: Verificare robustă prin nume ȘI Discord ID
+                    existing = None
+                    if employee_name:
+                        existing = SUPABASE_EMPLOYEE_MANAGER.get_employee_by_name(institution_id, employee_name)
+                    
+                    # Dacă nu găsește prin nume și avem Discord ID, încearcă și prin Discord
+                    if not existing and employee_discord:
+                        try:
+                            # Verificare suplimentară prin Discord ID pentru evitarea duplicatelor
+                            url = f"{SUPABASE_EMPLOYEE_MANAGER.url}/rest/v1/employees?institution_id=eq.{institution_id}&discord=eq.{employee_discord}&select=*"
+                            resp = requests.get(url, headers=SUPABASE_EMPLOYEE_MANAGER.headers, timeout=10)
+                            if resp.status_code == 200:
+                                data = resp.json()
+                                existing = data[0] if data else None
+                        except:
+                            pass  # Dacă nu poate verifica prin Discord, continuă cu numele
+                    
                     if existing:
                         # Update - IMPORTANT: Make sure punctaj is updated!
-                        print(f"   🔄 Updating employee: {row.get('NUME IC', 'Unknown')} - PUNCTAJ: {row.get('PUNCTAJ', 0)}")
+                        print(f"   🔄 Updating employee: {employee_name} - PUNCTAJ: {row.get('PUNCTAJ', 0)}")
                         SUPABASE_EMPLOYEE_MANAGER.update_employee(existing['id'], emp_data)
                     else:
-                        # Adaugă nou
-                        print(f"   ➕ Adding new employee: {row.get('NUME IC', 'Unknown')} - PUNCTAJ: {row.get('PUNCTAJ', 0)}")
-                        SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, emp_data)
+                        # Adaugă nou - Verificare finală înainte de ADD pentru evitarea duplicatelor
+                        print(f"   ➕ Adding new employee: {employee_name} - PUNCTAJ: {row.get('PUNCTAJ', 0)}")
+                        result = SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, emp_data)
+                        if not result:
+                            # Posibil duplicat - încearcă UPDATE în loc de ADD
+                            print(f"      ⚠️ Add failed (possibly duplicate) - trying update instead")
+                            # Re-verifică și încearcă update
+                            existing = SUPABASE_EMPLOYEE_MANAGER.get_employee_by_name(institution_id, employee_name)
+                            if existing:
+                                SUPABASE_EMPLOYEE_MANAGER.update_employee(existing['id'], emp_data)
+                                print(f"      ✅ Updated instead of added: {employee_name}")
                     synced += 1
                 except Exception as e:
                     print(f"   ⚠️  Error sync {row.get('NUME IC', 'Unknown')}: {e}")
@@ -5982,53 +6008,11 @@ def add_member(tree, city, institution):
         has_punctaj = "PUNCTAJ" in columns
         save_institution(city, institution, tree, update_timestamp=has_punctaj, updated_items=[new_item], skip_logging=True)
         
-        # ===== SUPABASE SYNC - ALWAYS TRY =====
-        if SUPABASE_EMPLOYEE_MANAGER_AVAILABLE:
-            print(f"\n[DEBUG] Employee sync attempt:")
-            print(f"   SUPABASE_EMPLOYEE_MANAGER_AVAILABLE: {SUPABASE_EMPLOYEE_MANAGER_AVAILABLE}")
-            print(f"   data.get('source'): {data.get('source')}")
-            print(f"   data.get('institution_id'): {data.get('institution_id')}")
-            try:
-                institution_id = data.get("institution_id")
-                
-                # If institution_id missing from local data, try to fetch it
-                if not institution_id:
-                    print(f"   ⚠️ institution_id missing locally, fetching from Supabase...")
-                    try:
-                        city_obj = SUPABASE_EMPLOYEE_MANAGER.get_city_by_name(city)
-                        print(f"      City lookup result: {city_obj}")
-                        if city_obj:
-                            inst_obj = SUPABASE_EMPLOYEE_MANAGER.get_institution_by_name(city_obj['id'], institution)
-                            print(f"      Institution lookup result: {inst_obj}")
-                            if inst_obj:
-                                institution_id = inst_obj['id']
-                                print(f"      ✓ Retrieved institution_id from Supabase: {institution_id}")
-                    except Exception as e:
-                        print(f"      ❌ Could not fetch institution_id: {e}")
-                        import traceback
-                        traceback.print_exc()
-                
-                # If we have institution_id, add employee to Supabase
-                if institution_id:
-                    print(f"   Attempting to add employee with institution_id={institution_id}")
-                    employee_data = dict(zip(columns, values))
-                    print(f"   Employee data: {employee_data}")
-                    supabase_emp_data = SUPABASE_EMPLOYEE_MANAGER.format_employee_for_supabase(employee_data)
-                    print(f"   Formatted for Supabase: {supabase_emp_data}")
-                    
-                    # Add to Supabase
-                    result = SUPABASE_EMPLOYEE_MANAGER.add_employee(institution_id, supabase_emp_data)
-                    print(f"   Add employee result: {result}")
-                    if result:
-                        print(f"✓ Employee synced to Supabase: {employee_data.get('NUME IC', 'Unknown')}")
-                    else:
-                        print(f"⚠️ Employee added locally but sync to Supabase failed")
-                else:
-                    print(f"   ❌ Cannot sync employee - institution_id not found")
-            except Exception as e:
-                print(f"❌ Error syncing employee to Supabase: {e}")
-                import traceback
-                traceback.print_exc()
+        # ===== SUPABASE SYNC - INDIVIDUAL EMPLOYEE ADD (SKIP TO AVOID DUPLICATE) =====
+        # DUPLICATE FIX: Nu mai facem sync direct aici pentru că save_institution() 
+        # va face sync complet prin supabase_upload() - evită dublarea!
+        print(f"\n[DEBUG] Skipping individual employee sync - will be handled by save_institution() sync")
+        print(f"   ✓ This prevents duplicate database entries")
         
         # ===== ACTION LOGGING =====
         if ACTION_LOGGER:
