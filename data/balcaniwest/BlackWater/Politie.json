@@ -18,22 +18,13 @@
         "7": "Sherif"
     },
     "rankuri_desc": "",
-    "last_punctaj_update": "2026-03-07 12:15:54",
+    "last_punctaj_update": "2026-03-07 12:16:32",
     "version": 2,
     "last_synced": null,
     "pending_sync": false,
     "city_id": 5,
     "institution_id": 1,
     "rows": [
-        {
-            "DISCORD": "Parjanu",
-            "NUME IC": "Dandeny Munoz",
-            "SERIE DE BULETIN": "R87G65U68",
-            "RANK": "5",
-            "ROLE": "Locotenent Instructor",
-            "PUNCTAJ": "14",
-            "ULTIMA_MOD": "2026-03-07 12:14:45"
-        },
         {
             "DISCORD": "Cristofor Columb",
             "NUME IC": "Cristofor Columb",
@@ -51,6 +42,15 @@
             "ROLE": "Sherif Adjunct",
             "PUNCTAJ": "17",
             "ULTIMA_MOD": "2026-03-07 12:15:54"
+        },
+        {
+            "DISCORD": "Parjanu",
+            "NUME IC": "Dandeny Munoz",
+            "SERIE DE BULETIN": "R87G65U68",
+            "RANK": "5",
+            "ROLE": "Locotenent Instructor",
+            "PUNCTAJ": "14",
+            "ULTIMA_MOD": "2026-03-07 12:14:45"
         },
         {
             "DISCORD": "Flavius-ursu",
@@ -85,8 +85,8 @@
             "SERIE DE BULETIN": "I60F89C81",
             "RANK": "1",
             "ROLE": "Offiter",
-            "PUNCTAJ": "0",
-            "ULTIMA_MOD": "2026-03-07 11:47:49"
+            "PUNCTAJ": "3",
+            "ULTIMA_MOD": "2026-03-07 12:16:32"
         },
         {
             "DISCORD": "tucurel",
